@@ -74,10 +74,17 @@ static const char *ffmpeg_mux_getname(void *type)
 	return obs_module_text("FFmpegMuxer");
 }
 
+
 static const char *ffmpeg_mpegts_mux_getname(void *type)
 {
 	UNUSED_PARAMETER(type);
 	return obs_module_text("FFmpegMpegtsMuxer");
+}
+
+static const char *ffmpeg_hls_mux_getname(void *type)
+{
+	UNUSED_PARAMETER(type);
+	return obs_module_text("FFmpegHlsMuxer");
 }
 
 static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
@@ -354,6 +361,58 @@ static bool ffmpeg_mux_start(void *data)
 	return true;
 }
 
+static bool ffmpeg_hls_mux_start(void *data) {
+	struct ffmpeg_muxer *stream = data;
+	obs_data_t *settings;
+	const char *path;
+
+	if (!obs_output_can_begin_data_capture(stream->output, 0))
+		return false;
+	if (!obs_output_initialize_encoders(stream->output, 0))
+		return false;
+
+	settings = obs_output_get_settings(stream->output);
+
+	obs_service_t *service;
+	service = obs_output_get_service(stream->output);
+	if (!service)
+		return false;
+	path = obs_service_get_url(service);
+
+	/* ensure output path is writable to avoid generic error
+	 * message.
+	 *
+	 * TODO: remove once ffmpeg-mux is refactored to pass
+	 * errors back */
+	FILE *test_file = os_fopen(path, "wb");
+	if (!test_file) {
+		set_file_not_readable_error(stream, settings, path);
+		return false;
+	}
+	fclose(test_file);
+	os_unlink(path);
+
+	// this is unchanged
+	start_pipe(stream, path);
+	obs_data_release(settings);
+
+	if (!stream->pipe) {
+		obs_output_set_last_error(
+			stream->output, obs_module_text("HelperProcessFailed"));
+		warn("Failed to create process pipe");
+		return false;
+	}
+
+	/* write headers and start capture */
+	os_atomic_set_bool(&stream->active, true);
+	os_atomic_set_bool(&stream->capturing, true);
+	stream->total_bytes = 0;
+	obs_output_begin_data_capture(stream->output, 0);
+
+	info("Writing file '%s'...", stream->path.array);
+	return true;
+}
+
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	int ret = -1;
@@ -588,6 +647,24 @@ struct obs_output_info ffmpeg_mpegts_muxer = {
 };
 
 /* ------------------------------------------------------------------------ */
+
+struct obs_output_info ffmpeg_hls_muxer = {
+	.id = "ffmpeg_hls_muxer",
+	.flags = OBS_OUTPUT_AV | OBS_OUTPUT_ENCODED | OBS_OUTPUT_MULTI_TRACK |
+		 OBS_OUTPUT_SERVICE,
+	.encoded_video_codecs = "h264",
+	.encoded_audio_codecs = "aac",
+	.get_name = ffmpeg_hls_mux_getname,
+	.create = ffmpeg_mux_create,
+	.destroy = ffmpeg_mux_destroy,
+	.start = ffmpeg_hls_mux_start,
+	.stop = ffmpeg_mux_stop,
+	.encoded_packet = ffmpeg_mux_data,
+	.get_total_bytes = ffmpeg_mux_total_bytes,
+	.get_properties = ffmpeg_mux_properties,
+	// write your own method here 
+	.get_connect_time_ms = ffmpeg_mpegts_mux_connect_time,
+};
 
 static const char *replay_buffer_getname(void *type)
 {
