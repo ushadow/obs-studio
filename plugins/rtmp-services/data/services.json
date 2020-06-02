@@ -212,6 +212,7 @@
             ],
             "recommended": {
                 "keyint": 2,
+                "output": "hls_output",
                 "max video bitrate": 51000,
                 "max audio bitrate": 160
             }
