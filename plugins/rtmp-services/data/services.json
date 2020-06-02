@@ -203,11 +203,11 @@
             "servers": [
                 {
                     "name": "Primary YouTube ingest server",
-                    "url": "https://a.upload.youtube.com/http_upload_hls?cid=<stream key>&copy=0&file=out.m3u8"
+                    "url": "https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8"
                 },
                 {
                     "name": "Backup YouTube ingest server",
-                    "url": "https://b.upload.youtube.com/http_upload_hls?cid=<stream key>&copy=0&file=out.m3u8"
+                    "url": "https://b.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=1&file=out.m3u8"
                 }
             ],
             "recommended": {
