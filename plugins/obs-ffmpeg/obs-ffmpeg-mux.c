@@ -378,6 +378,14 @@ static bool ffmpeg_hls_mux_start(void *data) {
 	if (!service)
 		return false;
 	path = obs_service_get_url(service);
+	stream_key = obs_service_get_key(service);
+	before_key = strtok(path, "{stream_key}");
+	after_key = strtok(NULL, "{stream_key}");
+	path_len = strlen(stream_key) + strlen(after_key) + strlen(before_key);
+	char path[path_len];
+	strcpy(path, before_key);
+	strcpy(path, stream_key);
+	strcpy(path, after_key);
 
 	/* ensure output path is writable to avoid generic error
 	 * message.
