@@ -241,9 +241,12 @@ void OBSBasicSettings::UpdateKeyLink()
 	if (serviceName == "Twitch") {
 		streamKeyLink =
 			"https://www.twitch.tv/broadcast/dashboard/streamkey";
-	} else if (serviceName == "YouTube / YouTube Gaming") {
-		streamKeyLink = "https://www.youtube.com/livestreaming";
-	} else if (serviceName.startsWith("Restream.io")) {
+	} else if (serviceName == "YouTube-RTMP")
+		or (serviceName == "YouTube-HLS"))
+		{
+			streamKeyLink = "https://www.youtube.com/livestreaming";
+		}
+	else if (serviceName.startsWith("Restream.io")) {
 		streamKeyLink =
 			"https://restream.io/settings/streaming-setup?from=OBS";
 	} else if (serviceName == "Facebook Live") {
