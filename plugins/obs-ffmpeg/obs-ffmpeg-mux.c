@@ -364,7 +364,7 @@ static bool ffmpeg_mux_start(void *data)
 static bool ffmpeg_hls_mux_start(void *data) {
 	struct ffmpeg_muxer *stream = data;
 	obs_data_t *settings;
-	const char *path;
+	const char *rawpath;
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -377,11 +377,11 @@ static bool ffmpeg_hls_mux_start(void *data) {
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
-	path = obs_service_get_url(service);
-	stream_key = obs_service_get_key(service);
-	before_key = strtok(path, "{stream_key}");
-	after_key = strtok(NULL, "{stream_key}");
-	path_len = strlen(stream_key) + strlen(after_key) + strlen(before_key);
+	rawpath = obs_service_get_url(service);
+	char* stream_key = obs_service_get_key(service);
+	char* before_key = strtok(rawpath, "{stream_key}");
+	char* after_key = strtok(NULL, "{stream_key}");
+	int path_len = strlen(stream_key) + strlen(after_key) + strlen(before_key);
 	char path[path_len];
 	strcpy(path, before_key);
 	strcpy(path, stream_key);
