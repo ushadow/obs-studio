@@ -198,7 +198,7 @@
             }
         },
         {
-            "name": "YouTube-HLS",
+            "name": "YouTube - HLS",
             "common": true,
             "servers": [
                 {
@@ -218,7 +218,7 @@
             }
         },
         {
-            "name": "YouTube-RTMP",
+            "name": "YouTube - RTMP",
             "common": true,
             "servers": [
                 {
