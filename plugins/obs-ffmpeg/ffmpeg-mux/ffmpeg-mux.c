@@ -519,20 +519,27 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 #define SRT_PROTO "srt"
 #define UDP_PROTO "udp"
 #define TCP_PROTO "tcp"
+#define HLS_PROTO "hls"
 
 static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
 	AVOutputFormat *output_format;
 	int ret;
 	bool isNetwork = false;
+	bool isHLS = false; 
 	if (strncmp(ffm->params.file, SRT_PROTO, sizeof(SRT_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0)
 		isNetwork = true;
-
+	if (strncmp(ffm->params.file, HLS_PROTO, sizeof(HLS_PROTO) - 1) == 0)
+		printf("Maya's log: sets isHLS to true\n");
+		isHLS = true; 
 	if (isNetwork) {
 		avformat_network_init();
 		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
+	} else if (isHLS) {
+		printf("Maya's log: Goes into if isHLS\n");
+		output_format = av_guess_format("hls", NULL, NULL);
 	} else {
 		output_format = av_guess_format(NULL, ffm->params.file, NULL);
 	}
@@ -663,7 +670,7 @@ static inline bool ffmpeg_mux_packet(struct ffmpeg_mux *ffm, uint8_t *buf,
 /* ------------------------------------------------------------------------- */
 
 #ifdef _WIN32
-int wmain(int argc, wchar_t *argv_w[])
+int main(int argc, wchar_t *argv_w[])
 #else
 int main(int argc, char *argv[])
 #endif

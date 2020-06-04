@@ -305,6 +305,7 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 
 static bool ffmpeg_mux_start(void *data)
 {
+	printf("Maya's log: entered ffmpeg_mux_start");
 	struct ffmpeg_muxer *stream = data;
 	obs_data_t *settings;
 	const char *path;
@@ -362,6 +363,7 @@ static bool ffmpeg_mux_start(void *data)
 }
 
 static bool ffmpeg_hls_mux_start(void *data) {
+	printf("Maya's log: entered hls_mux_start function\n");
 	struct ffmpeg_muxer *stream = data;
 	obs_data_t *settings;
 	const char *rawpath;
@@ -377,15 +379,17 @@ static bool ffmpeg_hls_mux_start(void *data) {
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
-	rawpath = obs_service_get_url(service);
+	path = obs_service_get_url(service);
 	char* stream_key = obs_service_get_key(service);
-	char* before_key = strtok(rawpath, "{stream_key}");
+	char* before_key = strtok(path.array, "{stream_key}");
 	char* after_key = strtok(NULL, "{stream_key}");
 	int path_len = strlen(stream_key) + strlen(after_key) + strlen(before_key);
 	char path[path_len];
-	strcpy(path, before_key);
-	strcpy(path, stream_key);
-	strcpy(path, after_key);
+	memset(path.array, 0, sizeof path.array);
+	strcpy(path.array, before_key);
+	strcpy(path.array, stream_key);
+	strcpy(path.array, after_key);
+	printf("Maya's log: URL is %s\n", path.array);
 
 	/* ensure output path is writable to avoid generic error
 	 * message.
