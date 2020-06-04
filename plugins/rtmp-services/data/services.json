@@ -198,7 +198,7 @@
             }
         },
         {
-            "name": "YouTube-HLS",
+            "name": "YouTube - HLS",
             "common": true,
             "servers": [
                 {
@@ -212,13 +212,13 @@
             ],
             "recommended": {
                 "keyint": 2,
-                "output": "hls_output",
+                "output": "ffmpeg_hls_muxer",
                 "max video bitrate": 51000,
                 "max audio bitrate": 160
             }
         },
         {
-            "name": "YouTube-RTMP",
+            "name": "YouTube - RTMP",
             "common": true,
             "servers": [
                 {
