@@ -566,7 +566,7 @@ void AutoConfigStreamPage::UpdateKeyLink()
 	if (serviceName == "Twitch") {
 		streamKeyLink =
 			"https://www.twitch.tv/broadcast/dashboard/streamkey";
-	} else if ((serviceName == "YouTube - RTMP") or
+	} else if ((serviceName == "YouTube - RTMP") ||
 		   (serviceName == "YouTube - HLS")) {
 		streamKeyLink = "https://www.youtube.com/live_dashboard";
 		isYoutube = true;
