@@ -81,6 +81,7 @@ struct main_params {
 	int fps_den;
 	char *acodec;
 	char *muxer_settings;
+	char* format;
 };
 
 struct audio_params {
@@ -258,6 +259,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	*p_audio = audio;
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
+	get_opt_str(argc, argv, &params->format, "hls indiator");
 
 	return true;
 }
@@ -519,7 +521,8 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 #define SRT_PROTO "srt"
 #define UDP_PROTO "udp"
 #define TCP_PROTO "tcp"
-#define HLS_PROTO "hls"
+//#define HLS_PROTO "http"
+// a different way to determine if it's HLS?
 
 static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
@@ -531,7 +534,7 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0)
 		isNetwork = true;
-	if (strncmp(ffm->params.file, HLS_PROTO, sizeof(HLS_PROTO) - 1) == 0)
+	if (strcmp(ffm->params.format, "hls") == 0)
 		printf("1. Maya's log: sets isHLS to true\n");
 		isHLS = true; 
 	if (isNetwork) {
@@ -539,6 +542,8 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
 	} else if (isHLS) {
 		printf("2. Maya's log: Goes into if isHLS\n");
+		// look up what this function does so you understand why you want it
+		avformat_network_init();
 		output_format = av_guess_format("hls", NULL, NULL);
 		printf("3. Maya's log: Output_format name is: %s\n", output_format->name);
 		printf("4. Maya's log: Output_format longname is: %s\n", output_format->long_name);
@@ -715,7 +720,7 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "Couldn't initialize muxer\n");
 		return ret;
 	}
-	
+
 	while (!fail && safe_read(&info, sizeof(info)) == sizeof(info)) {
 		resize_buf_resize(&rb, info.size);
 

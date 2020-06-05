@@ -692,7 +692,7 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	/* --------------------- */
 
 	const char *type = obs_service_get_output_type(service);
-	printf("8 Maya's log: advanced start streaming type is: %s\n", type);
+
 	if (!type) {
 		type = "rtmp_output";
 		const char *url = obs_service_get_url(service);
@@ -700,6 +700,7 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 		    strncmp(url, RTMP_PROTOCOL, strlen(RTMP_PROTOCOL)) != 0) {
 			type = "ffmpeg_mpegts_muxer";
 		}
+		printf("Maya's log: shouldn't be printed!\n");
 	}
 
 	/* XXX: this is messy and disgusting and should be refactored */
@@ -1535,7 +1536,6 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 	/* --------------------- */
 
 	const char *type = obs_service_get_output_type(service);
-	printf("7 Maya's log: advanced start streaming type is: %s\n", type);
 	if (!type) {
 		type = "rtmp_output";
 		const char *url = obs_service_get_url(service);
@@ -1543,6 +1543,7 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 		    strncmp(url, RTMP_PROTOCOL, strlen(RTMP_PROTOCOL)) != 0) {
 			type = "ffmpeg_mpegts_muxer";
 		}
+		printf("Maya's log: shouldn't be printed!");
 	}
 
 

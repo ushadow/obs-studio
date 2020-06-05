@@ -305,10 +305,12 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 
 static bool ffmpeg_mux_start(void *data)
 {
-	printf("Maya's log: entered ffmpeg_mux_start");
-	struct ffmpeg_muxer *stream = data;
+	struct ffmpeg_muxer *stream;
 	obs_data_t *settings;
 	const char *path;
+	stream = data;
+	info("Maya's log: entered ffmpeg_mux_start");
+
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -363,10 +365,12 @@ static bool ffmpeg_mux_start(void *data)
 }
 
 static bool ffmpeg_hls_mux_start(void *data) {
-	printf("Maya's log: entered hls_mux_start function\n");
-	struct ffmpeg_muxer *stream = data;
+	
+	struct ffmpeg_muxer *stream;
 	obs_data_t *settings;
 	const char *rawpath;
+	stream = data;
+	info("Maya's log: entered hls_mux_start function\n");
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -389,7 +393,7 @@ static bool ffmpeg_hls_mux_start(void *data) {
 	strcpy(path, before_key);
 	strcpy(path, stream_key);
 	strcpy(path, after_key);
-	printf("Maya's log: URL is %s\n", path);
+	info("Maya's log: URL is %s\n", path);
 
 	/* ensure output path is writable to avoid generic error
 	 * message.
