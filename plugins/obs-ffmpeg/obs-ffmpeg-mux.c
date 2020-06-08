@@ -373,6 +373,7 @@ static bool ffmpeg_hls_mux_start(void *data) {
 	struct ffmpeg_muxer *stream;
 	obs_data_t *settings;
 	const char *raw_path;
+	const char* token_raw_path; 
 	const char* stream_key;
 	char* before_key;
 	char* after_bracket;
@@ -381,7 +382,7 @@ static bool ffmpeg_hls_mux_start(void *data) {
 
 	stream = data;
 	stream->format = "hls";
-	info("Maya's log: entered hls_mux_start function\n");
+	printf("Maya's log: entered hls_mux_start function\n");
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -389,24 +390,42 @@ static bool ffmpeg_hls_mux_start(void *data) {
 		return false;
 
 	settings = obs_output_get_settings(stream->output);
-	info("Maya's log: in hls_mux_start got settings\n");
+	printf("Maya's log: in hls_mux_start got settings\n");
 
 	obs_service_t *service;
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
 
-	info("Maya's log: in hls_mux_start got service\n");
+	printf("Maya's log: in hls_mux_start got service\n");
 	raw_path = obs_service_get_url(service);
+	char raw_path_buf[100];
+	// is it okay to arbitrarily copy over 100 bytes? 
+	// should I be being more careful? strlen can't be applied
+	// so I couldn't get a precise length for the string in a simple way
+	// but I could use pointer arithmetic to do so
+	strncpy(raw_path_buf, raw_path, 100);
+	printf("Maya's log: raw_path is: %s\n", raw_path);
 	stream_key = obs_service_get_key(service);
-	before_key = strtok(raw_path, "{");
+	printf("Maya's log: in hls_mux_start got url and key\n");
+	before_key = strtok(raw_path_buf, "{");
 	after_bracket = strtok(NULL, "{");
 	before_bracket = strtok(after_bracket, "}");
+	printf("Maya's log: before_key has %s\n", before_key);
+	printf("Maya's log: after_bracket has %s\n", after_bracket);
+	printf("Maya's log: before_bracket has %s\n", before_bracket);
 	after_key = strtok(NULL, "}");
+	// is it okay to have this arbitrary number of 1000?
+	// is this a security risk 
 	char path[1000];
 	strcpy(path, before_key);
+	printf("Maya's log: in hls_mux_start after strcpy\n");
 	strcat(path, stream_key);
+	printf("Maya's log: in hls_mux_start after first strcat\n");
+	printf("SEGFAULT: path is: %s\n", path);
+	printf("SEGFAULT: after_key is: %s\n", after_key);
 	strcat(path, after_key);
+	printf("Maya's log: in hls_mux_start after second strcat\n");
 
 	printf("Maya's log: path is %s\n", path);
 	printf("Maya's log: before start_pipe\n");
