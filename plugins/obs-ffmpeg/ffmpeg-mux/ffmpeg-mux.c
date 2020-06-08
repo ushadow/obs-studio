@@ -258,8 +258,8 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 
 	*p_audio = audio;
 
+	get_opt_str(argc, argv, &params->format, "hls setting");
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
-	get_opt_str(argc, argv, &params->format, "hls indiator");
 
 	return true;
 }
@@ -580,14 +580,14 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 		return ret;
 	}
 
-	printf("5. Maya's log: reached the end of ffmpeg_mux_init_context\n");
+	//printf("5. Maya's log: reached the end of ffmpeg_mux_init_context\n");
 	return FFM_SUCCESS;
 }
 
 static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 				    char *argv[])
 {
-	printf("0.5 Maya's log: entered ffmpeg_mux_init_internal\n");
+	//printf("0.5 Maya's log: entered ffmpeg_mux_init_internal\n");
 	argc--;
 	argv++;
 	if (!init_params(&argc, &argv, &ffm->params, &ffm->audio))
@@ -612,7 +612,7 @@ static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 
 static int ffmpeg_mux_init(struct ffmpeg_mux *ffm, int argc, char *argv[])
 {
-	printf("0.4 Maya's log: entered ffmpeg_mux_init_internal\n");
+	//printf("0.4 Maya's log: entered ffmpeg_mux_init_internal\n");
 	int ret = ffmpeg_mux_init_internal(ffm, argc, argv);
 	if (ret != FFM_SUCCESS) {
 		ffmpeg_mux_free(ffm);
@@ -714,7 +714,7 @@ int main(int argc, char *argv[])
 #endif
 	setvbuf(stderr, NULL, _IONBF, 0);
 
-	printf("0.3 Maya's log: right before ffmpeg_mux_init called\n");
+	//printf("0.3 Maya's log: right before ffmpeg_mux_init called\n");
 	ret = ffmpeg_mux_init(&ffm, argc, argv);
 	if (ret != FFM_SUCCESS) {
 		fprintf(stderr, "Couldn't initialize muxer\n");

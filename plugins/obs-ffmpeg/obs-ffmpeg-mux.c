@@ -66,6 +66,7 @@ struct ffmpeg_muxer {
 	volatile bool muxing;
 
 	bool is_network;
+	char* format;
 };
 
 static const char *ffmpeg_mux_getname(void *type)
@@ -236,6 +237,10 @@ static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 			       const char *path)
 {
+	printf("Maya's log: in build_command_line\n");
+	if ((stream->format == NULL) || (*stream->format == '\0'))
+		stream->format = "";
+
 	obs_encoder_t *vencoder = obs_output_get_video_encoder(stream->output);
 	obs_encoder_t *aencoders[MAX_AUDIO_MIXES];
 	int num_tracks = 0;
@@ -271,6 +276,7 @@ static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 		}
 	}
 
+	
 	add_muxer_params(cmd, stream);
 }
 
@@ -309,8 +315,6 @@ static bool ffmpeg_mux_start(void *data)
 	obs_data_t *settings;
 	const char *path;
 	stream = data;
-	info("Maya's log: entered ffmpeg_mux_start");
-
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -368,8 +372,15 @@ static bool ffmpeg_hls_mux_start(void *data) {
 	
 	struct ffmpeg_muxer *stream;
 	obs_data_t *settings;
-	const char *rawpath;
+	const char *raw_path;
+	const char* stream_key;
+	char* before_key;
+	char* after_bracket;
+	char* before_bracket;
+	char* after_key;
+
 	stream = data;
+	stream->format = "hls";
 	info("Maya's log: entered hls_mux_start function\n");
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
@@ -378,38 +389,29 @@ static bool ffmpeg_hls_mux_start(void *data) {
 		return false;
 
 	settings = obs_output_get_settings(stream->output);
+	info("Maya's log: in hls_mux_start got settings\n");
 
 	obs_service_t *service;
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
-	rawpath = obs_service_get_url(service);
-	char* stream_key = obs_service_get_key(service);
-	
-	char* before_key = strtok(rawpath, "{stream_key}");
-	char* after_key = strtok(NULL, "{stream_key}");
-	int path_len = strlen(stream_key) + strlen(after_key) + strlen(before_key);
-	char path[path_len];
+
+	info("Maya's log: in hls_mux_start got service\n");
+	raw_path = obs_service_get_url(service);
+	stream_key = obs_service_get_key(service);
+	before_key = strtok(raw_path, "{");
+	after_bracket = strtok(NULL, "{");
+	before_bracket = strtok(after_bracket, "}");
+	after_key = strtok(NULL, "}");
+	char path[1000];
 	strcpy(path, before_key);
-	strcpy(path, stream_key);
-	strcpy(path, after_key);
-	info("Maya's log: URL is %s\n", path);
+	strcat(path, stream_key);
+	strcat(path, after_key);
 
-	/* ensure output path is writable to avoid generic error
-	 * message.
-	 *
-	 * TODO: remove once ffmpeg-mux is refactored to pass
-	 * errors back */
-	FILE *test_file = os_fopen(path, "wb");
-	if (!test_file) {
-		set_file_not_readable_error(stream, settings, path);
-		return false;
-	}
-	fclose(test_file);
-	os_unlink(path);
-
-	// this is unchanged
+	printf("Maya's log: path is %s\n", path);
+	printf("Maya's log: before start_pipe\n");
 	start_pipe(stream, path);
+	printf("Maya's log: after start_pipe\n");
 	obs_data_release(settings);
 
 	if (!stream->pipe) {
