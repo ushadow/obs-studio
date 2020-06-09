@@ -692,7 +692,6 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 	/* --------------------- */
 
 	const char *type = obs_service_get_output_type(service);
-
 	if (!type) {
 		type = "rtmp_output";
 		const char *url = obs_service_get_url(service);

@@ -236,10 +236,8 @@ static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 			       const char *path)
 {
-	printf("Maya's log: in build_command_line\n");
 	if ((stream->format == NULL) || (*stream->format == '\0'))
 		stream->format = "";
-
 	obs_encoder_t *vencoder = obs_output_get_video_encoder(stream->output);
 	obs_encoder_t *aencoders[MAX_AUDIO_MIXES];
 	int num_tracks = 0;
@@ -309,10 +307,9 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 
 static bool ffmpeg_mux_start(void *data)
 {
-	struct ffmpeg_muxer *stream;
+	struct ffmpeg_muxer *stream = data;
 	obs_data_t *settings;
 	const char *path;
-	stream = data;
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -368,14 +365,11 @@ static bool ffmpeg_mux_start(void *data)
 
 static bool ffmpeg_hls_mux_start(void *data)
 {
-
-	struct ffmpeg_muxer *stream;
+	struct ffmpeg_muxer *stream = data;
 	obs_data_t *settings;
 	const char *path_str;
 	const char *stream_key;
 	struct dstr path = {0};
-
-	stream = data;
 	stream->format = "hls";
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))

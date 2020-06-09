@@ -670,7 +670,7 @@ static inline bool ffmpeg_mux_packet(struct ffmpeg_mux *ffm, uint8_t *buf,
 /* ------------------------------------------------------------------------- */
 
 #ifdef _WIN32
-int main(int argc, wchar_t *argv_w[])
+int wmain(int argc, wchar_t *argv_w[])
 #else
 int main(int argc, char *argv[])
 #endif
