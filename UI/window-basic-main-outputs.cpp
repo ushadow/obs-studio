@@ -700,7 +700,6 @@ bool SimpleOutput::StartStreaming(obs_service_t *service)
 		    strncmp(url, RTMP_PROTOCOL, strlen(RTMP_PROTOCOL)) != 0) {
 			type = "ffmpeg_mpegts_muxer";
 		}
-		printf("Maya's log: shouldn't be printed!\n");
 	}
 
 	/* XXX: this is messy and disgusting and should be refactored */
@@ -1543,9 +1542,7 @@ bool AdvancedOutput::StartStreaming(obs_service_t *service)
 		    strncmp(url, RTMP_PROTOCOL, strlen(RTMP_PROTOCOL)) != 0) {
 			type = "ffmpeg_mpegts_muxer";
 		}
-		printf("Maya's log: shouldn't be printed!");
 	}
-
 
 	/* XXX: this is messy and disgusting and should be refactored */
 	if (outputType != type) {

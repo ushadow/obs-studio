@@ -66,7 +66,7 @@ struct ffmpeg_muxer {
 	volatile bool muxing;
 
 	bool is_network;
-	char* format;
+	char *format;
 };
 
 static const char *ffmpeg_mux_getname(void *type)
@@ -74,7 +74,6 @@ static const char *ffmpeg_mux_getname(void *type)
 	UNUSED_PARAMETER(type);
 	return obs_module_text("FFmpegMuxer");
 }
-
 
 static const char *ffmpeg_mpegts_mux_getname(void *type)
 {
@@ -276,7 +275,6 @@ static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 		}
 	}
 
-	
 	add_muxer_params(cmd, stream);
 }
 
@@ -368,21 +366,17 @@ static bool ffmpeg_mux_start(void *data)
 	return true;
 }
 
-static bool ffmpeg_hls_mux_start(void *data) {
-	
+static bool ffmpeg_hls_mux_start(void *data)
+{
+
 	struct ffmpeg_muxer *stream;
 	obs_data_t *settings;
-	const char *raw_path;
-	const char* token_raw_path; 
-	const char* stream_key;
-	char* before_key;
-	char* after_bracket;
-	char* before_bracket;
-	char* after_key;
+	const char *path_str;
+	const char *stream_key;
+	struct dstr path = {0};
 
 	stream = data;
 	stream->format = "hls";
-	printf("Maya's log: entered hls_mux_start function\n");
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -390,47 +384,18 @@ static bool ffmpeg_hls_mux_start(void *data) {
 		return false;
 
 	settings = obs_output_get_settings(stream->output);
-	printf("Maya's log: in hls_mux_start got settings\n");
 
 	obs_service_t *service;
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
 
-	printf("Maya's log: in hls_mux_start got service\n");
-	raw_path = obs_service_get_url(service);
-	char raw_path_buf[100];
-	// is it okay to arbitrarily copy over 100 bytes? 
-	// should I be being more careful? strlen can't be applied
-	// so I couldn't get a precise length for the string in a simple way
-	// but I could use pointer arithmetic to do so
-	strncpy(raw_path_buf, raw_path, 100);
-	printf("Maya's log: raw_path is: %s\n", raw_path);
+	path_str = obs_service_get_url(service);
 	stream_key = obs_service_get_key(service);
-	printf("Maya's log: in hls_mux_start got url and key\n");
-	before_key = strtok(raw_path_buf, "{");
-	after_bracket = strtok(NULL, "{");
-	before_bracket = strtok(after_bracket, "}");
-	printf("Maya's log: before_key has %s\n", before_key);
-	printf("Maya's log: after_bracket has %s\n", after_bracket);
-	printf("Maya's log: before_bracket has %s\n", before_bracket);
-	after_key = strtok(NULL, "}");
-	// is it okay to have this arbitrary number of 1000?
-	// is this a security risk 
-	char path[1000];
-	strcpy(path, before_key);
-	printf("Maya's log: in hls_mux_start after strcpy\n");
-	strcat(path, stream_key);
-	printf("Maya's log: in hls_mux_start after first strcat\n");
-	printf("SEGFAULT: path is: %s\n", path);
-	printf("SEGFAULT: after_key is: %s\n", after_key);
-	strcat(path, after_key);
-	printf("Maya's log: in hls_mux_start after second strcat\n");
+	dstr_copy(&path, path_str);
+	dstr_replace(&path, "{stream_key}", stream_key);
 
-	printf("Maya's log: path is %s\n", path);
-	printf("Maya's log: before start_pipe\n");
-	start_pipe(stream, path);
-	printf("Maya's log: after start_pipe\n");
+	start_pipe(stream, path.array);
 	obs_data_release(settings);
 
 	if (!stream->pipe) {
@@ -699,7 +664,6 @@ struct obs_output_info ffmpeg_hls_muxer = {
 	.encoded_packet = ffmpeg_mux_data,
 	.get_total_bytes = ffmpeg_mux_total_bytes,
 	.get_properties = ffmpeg_mux_properties,
-	// write your own method here 
 	.get_connect_time_ms = ffmpeg_mpegts_mux_connect_time,
 };
 

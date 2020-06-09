@@ -81,7 +81,7 @@ struct main_params {
 	int fps_den;
 	char *acodec;
 	char *muxer_settings;
-	char* format;
+	char *format;
 };
 
 struct audio_params {
@@ -521,34 +521,26 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 #define SRT_PROTO "srt"
 #define UDP_PROTO "udp"
 #define TCP_PROTO "tcp"
-//#define HLS_PROTO "http"
-// a different way to determine if it's HLS?
 
 static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
 	AVOutputFormat *output_format;
 	int ret;
 	bool isNetwork = false;
-	bool isHLS = false; 
+	bool isHLS = false;
 	if (strncmp(ffm->params.file, SRT_PROTO, sizeof(SRT_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0)
 		isNetwork = true;
 	if (strcmp(ffm->params.format, "hls") == 0)
-		printf("1. Maya's log: sets isHLS to true\n");
-		isHLS = true; 
+		isHLS = true;
 	if (isNetwork) {
 		avformat_network_init();
 		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
 	} else if (isHLS) {
-		printf("2. Maya's log: Goes into if isHLS\n");
-		// look up what this function does so you understand why you want it
 		avformat_network_init();
 		output_format = av_guess_format("hls", NULL, NULL);
-		printf("3. Maya's log: Output_format name is: %s\n", output_format->name);
-		printf("4. Maya's log: Output_format longname is: %s\n", output_format->long_name);
 	} else {
-		printf("Maya's log: enters else of ffmpeg-mux.c file\n");
 		output_format = av_guess_format(NULL, ffm->params.file, NULL);
 	}
 
@@ -580,14 +572,12 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 		return ret;
 	}
 
-	//printf("5. Maya's log: reached the end of ffmpeg_mux_init_context\n");
 	return FFM_SUCCESS;
 }
 
 static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 				    char *argv[])
 {
-	//printf("0.5 Maya's log: entered ffmpeg_mux_init_internal\n");
 	argc--;
 	argv++;
 	if (!init_params(&argc, &argv, &ffm->params, &ffm->audio))
@@ -612,7 +602,6 @@ static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 
 static int ffmpeg_mux_init(struct ffmpeg_mux *ffm, int argc, char *argv[])
 {
-	//printf("0.4 Maya's log: entered ffmpeg_mux_init_internal\n");
 	int ret = ffmpeg_mux_init_internal(ffm, argc, argv);
 	if (ret != FFM_SUCCESS) {
 		ffmpeg_mux_free(ffm);
@@ -714,7 +703,6 @@ int main(int argc, char *argv[])
 #endif
 	setvbuf(stderr, NULL, _IONBF, 0);
 
-	//printf("0.3 Maya's log: right before ffmpeg_mux_init called\n");
 	ret = ffmpeg_mux_init(&ffm, argc, argv);
 	if (ret != FFM_SUCCESS) {
 		fprintf(stderr, "Couldn't initialize muxer\n");
