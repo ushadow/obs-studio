@@ -378,12 +378,10 @@ static bool ffmpeg_hls_mux_start(void *data)
 		return false;
 
 	settings = obs_output_get_settings(stream->output);
-
 	obs_service_t *service;
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
-
 	path_str = obs_service_get_url(service);
 	stream_key = obs_service_get_key(service);
 	dstr_copy(&path, path_str);
