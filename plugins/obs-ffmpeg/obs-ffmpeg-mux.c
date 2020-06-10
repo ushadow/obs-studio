@@ -404,6 +404,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	obs_output_begin_data_capture(stream->output, 0);
 
 	info("Writing file '%s'...", stream->path.array);
+	dstr_free(&path);
 	return true;
 }
 
