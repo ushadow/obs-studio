@@ -521,26 +521,31 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 #define SRT_PROTO "srt"
 #define UDP_PROTO "udp"
 #define TCP_PROTO "tcp"
+#define HTTP_PROTO "http"
 
 static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
 	AVOutputFormat *output_format;
 	int ret;
+	char* format; 
 	bool isNetwork = false;
-	bool isHLS = false;
+	bool formatSet = false; 
+	format = ffm->params.format;
+	formatSet = strcmp(format, "");
+
 	if (strncmp(ffm->params.file, SRT_PROTO, sizeof(SRT_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
-	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0)
+	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0 ||
+		strncmp(ffm->params.file, HTTP_PROTO, sizeof(HTTP_PROTO) - 1) == 0)
 		isNetwork = true;
-	if (strcmp(ffm->params.format, "hls") == 0)
-		isHLS = true;
-	if (isNetwork) {
+	if (isNetwork)
 		avformat_network_init();
+
+	if (isNetwork && !(formatSet))
 		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
-	} else if (isHLS) {
-		avformat_network_init();
-		output_format = av_guess_format("hls", NULL, NULL);
-	} else {
+	else if (formatSet)
+		output_format = av_guess_format(format, NULL, NULL);
+	else {
 		output_format = av_guess_format(NULL, ffm->params.file, NULL);
 	}
 
