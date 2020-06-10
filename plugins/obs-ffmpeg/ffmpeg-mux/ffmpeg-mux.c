@@ -256,7 +256,9 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	}
 
 	*p_audio = audio;
+	
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
+	
 	return true;
 }
 
