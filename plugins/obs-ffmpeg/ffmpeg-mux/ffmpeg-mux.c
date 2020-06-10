@@ -81,7 +81,6 @@ struct main_params {
 	int fps_den;
 	char *acodec;
 	char *muxer_settings;
-	char *format;
 };
 
 struct audio_params {
@@ -257,10 +256,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	}
 
 	*p_audio = audio;
-
-	get_opt_str(argc, argv, &params->format, "hls setting");
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
-
 	return true;
 }
 
@@ -527,33 +523,31 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
 	AVOutputFormat *output_format;
 	int ret;
-	char* format; 
 	bool isNetwork = false;
-	bool formatSet = false; 
-	format = ffm->params.format;
-	formatSet = strcmp(format, "");
+	bool isHTTP = false;
+	isHTTP = (strncmp(ffm->params.file, HTTP_PROTO,
+			  sizeof(HTTP_PROTO) - 1) == 0);
 
 	if (strncmp(ffm->params.file, SRT_PROTO, sizeof(SRT_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0 ||
-		strncmp(ffm->params.file, HTTP_PROTO, sizeof(HTTP_PROTO) - 1) == 0)
+	    isHTTP) {
 		isNetwork = true;
-	if (isNetwork)
 		avformat_network_init();
-
-	if (isNetwork && !(formatSet))
-		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
-	else if (formatSet)
-		output_format = av_guess_format(format, NULL, NULL);
-	else {
-		output_format = av_guess_format(NULL, ffm->params.file, NULL);
 	}
+
+	if (isNetwork && !(isHTTP))
+		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
+	else
+		output_format = av_guess_format(NULL, ffm->params.file, NULL);
 
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
 			ffm->params.file);
 		return FFM_ERROR;
 	}
+	printf("info: output_format name and long_name: %s, %s\n",
+	       output_format->name, output_format->long_name);
 
 	ret = avformat_alloc_output_context2(&ffm->output, output_format, NULL,
 					     NULL);
