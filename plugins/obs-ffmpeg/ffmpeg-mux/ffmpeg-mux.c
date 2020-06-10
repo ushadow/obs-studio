@@ -256,7 +256,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	}
 
 	*p_audio = audio;
-	
+
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
 	
 	return true;
@@ -525,20 +525,20 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
 	AVOutputFormat *output_format;
 	int ret;
-	bool isNetwork = false;
-	bool isHTTP = false;
-	isHTTP = (strncmp(ffm->params.file, HTTP_PROTO,
+	bool is_network = false;
+	bool is_http = false;
+	is_http = (strncmp(ffm->params.file, HTTP_PROTO,
 			  sizeof(HTTP_PROTO) - 1) == 0);
 
 	if (strncmp(ffm->params.file, SRT_PROTO, sizeof(SRT_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, TCP_PROTO, sizeof(TCP_PROTO) - 1) == 0 ||
-	    isHTTP) {
-		isNetwork = true;
+	    is_http) {
+		is_network = true;
 		avformat_network_init();
 	}
 
-	if (isNetwork && !(isHTTP))
+	if (is_network && !is_http)
 		output_format = av_guess_format("mpegts", NULL, "video/M2PT");
 	else
 		output_format = av_guess_format(NULL, ffm->params.file, NULL);
