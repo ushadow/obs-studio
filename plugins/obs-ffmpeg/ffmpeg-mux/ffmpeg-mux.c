@@ -258,7 +258,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	*p_audio = audio;
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
-	
+
 	return true;
 }
 
@@ -528,7 +528,7 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 	bool is_network = false;
 	bool is_http = false;
 	is_http = (strncmp(ffm->params.file, HTTP_PROTO,
-			  sizeof(HTTP_PROTO) - 1) == 0);
+			   sizeof(HTTP_PROTO) - 1) == 0);
 
 	if (strncmp(ffm->params.file, SRT_PROTO, sizeof(SRT_PROTO) - 1) == 0 ||
 	    strncmp(ffm->params.file, UDP_PROTO, sizeof(UDP_PROTO) - 1) == 0 ||
