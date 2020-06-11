@@ -363,7 +363,7 @@ static bool ffmpeg_mux_start(void *data)
 static bool ffmpeg_hls_mux_start(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
-	obs_data_t *settings;
+	obs_service_t *service;
 	const char *path_str;
 	const char *stream_key;
 	struct dstr path = {0};
@@ -373,8 +373,6 @@ static bool ffmpeg_hls_mux_start(void *data)
 	if (!obs_output_initialize_encoders(stream->output, 0))
 		return false;
 
-	settings = obs_output_get_settings(stream->output);
-	obs_service_t *service;
 	service = obs_output_get_service(stream->output);
 	if (!service)
 		return false;
@@ -384,7 +382,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	dstr_replace(&path, "{stream_key}", stream_key);
 
 	start_pipe(stream, path.array);
-	obs_data_release(settings);
+	dstr_free(&path);
 
 	if (!stream->pipe) {
 		obs_output_set_last_error(
@@ -400,7 +398,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	obs_output_begin_data_capture(stream->output, 0);
 
 	info("Writing to path '%s'...", stream->path.array);
-	dstr_free(&path);
+
 	return true;
 }
 
