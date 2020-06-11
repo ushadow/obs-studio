@@ -548,10 +548,9 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 			ffm->params.file);
 		return FFM_ERROR;
 	}
-	output_format->name ? output_format->name : "unknown";
-	output_format->long_name ? output_format->long_name : "unknown";
 	printf("info: output_format name and long_name: %s, %s\n",
-	       output_format->name, output_format->long_name);
+	       output_format->name ? output_format->name : "unknown",
+	       output_format->long_name ? output_format->long_name : "unknown");
 
 	ret = avformat_alloc_output_context2(&ffm->output, output_format, NULL,
 					     NULL);
