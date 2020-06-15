@@ -203,7 +203,7 @@
             "servers": [
                 {
                     "name": "Primary YouTube ingest server",
-                    "url": "http://localhost:8080"
+                    "url": "https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8"
                 },
                 {
                     "name": "Backup YouTube ingest server",
