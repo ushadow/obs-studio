@@ -66,6 +66,8 @@ struct ffmpeg_muxer {
 	volatile bool muxing;
 
 	bool is_network;
+
+	struct dstr settings;
 };
 
 static const char *ffmpeg_mux_getname(void *type)
@@ -217,19 +219,26 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 
 static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 {
-	obs_data_t *settings = obs_output_get_settings(stream->output);
+	obs_data_t *settings;
 	struct dstr mux = {0};
 
-	dstr_copy(&mux, obs_data_get_string(settings, "muxer_settings"));
+	if (dstr_is_empty(&stream->settings)) {
+		settings = obs_output_get_settings(stream->output);
+		dstr_copy(&mux,
+			  obs_data_get_string(settings, "muxer_settings"));
+		obs_data_release(settings);
+	} else {
+		dstr_copy(&mux, stream->settings.array);
+	}
 
 	log_muxer_params(stream, mux.array);
 
 	dstr_replace(&mux, "\"", "\\\"");
-	obs_data_release(settings);
 
 	dstr_catf(cmd, "\"%s\" ", mux.array ? mux.array : "");
 
 	dstr_free(&mux);
+	dstr_free(&stream->settings);
 }
 
 static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
@@ -367,6 +376,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	const char *path_str;
 	const char *stream_key;
 	struct dstr path = {0};
+	struct dstr settings = {0};
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -380,6 +390,8 @@ static bool ffmpeg_hls_mux_start(void *data)
 	stream_key = obs_service_get_key(service);
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
+	dstr_catf(&settings, "http_user_agent=libobs/%s", OBS_VERSION);
+	stream->settings = settings;
 
 	start_pipe(stream, path.array);
 	dstr_free(&path);
