@@ -198,7 +198,6 @@
             }
         },
         {
-<<<<<<< HEAD
             "name": "YouTube - HLS",
             "common": true,
             "servers": [
@@ -220,9 +219,6 @@
         },
         {
             "name": "YouTube - RTMP",
-=======
-            "name": "YouTube / YouTube Gaming",
->>>>>>> 77e099bf... Revert "plugins: Add Youtube-HLS to the Service dropdown"
             "common": true,
             "servers": [
                 {
@@ -1426,13 +1422,13 @@
                 }
             ]
         }, 
-        {	
-            "name": "Mixcloud",	
-            "servers": [	
-                {	
-                    "name": "Default",	
-                    "url": "rtmp://rtmp.mixcloud.com/broadcast"	
-                }	
+        {
+            "name": "Mixcloud",
+            "servers": [
+                {
+                    "name": "Default",
+                    "url": "rtmp://rtmp.mixcloud.com/broadcast"
+                }
             ],	
             "recommended": {
                 "keyint": 2,	
