@@ -1421,7 +1421,7 @@
                     "url": "rtmp://73846.livepush.myqcloud.com/live/"
                 }
             ]
-        }, 
+        },
         {
             "name": "Mixcloud",
             "servers": [
@@ -1429,13 +1429,13 @@
                     "name": "Default",
                     "url": "rtmp://rtmp.mixcloud.com/broadcast"
                 }
-            ],	
+            ],
             "recommended": {
-                "keyint": 2,	
-                "max video bitrate": 6000,	
-                "max audio bitrate": 320,	
-                "x264opts": "scenecut=0"	
-            }	
+                "keyint": 2,
+                "max video bitrate": 6000,
+                "max audio bitrate": 320,
+                "x264opts": "scenecut=0"
+            }
         },
         {
             "name": "SermonAudio Cloud",
