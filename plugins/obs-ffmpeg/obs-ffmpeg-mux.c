@@ -219,15 +219,15 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 
 static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 {
-	obs_data_t* settings;
+	obs_data_t *settings;
 	struct dstr mux = {0};
 
 	if (dstr_is_empty(&stream->settings)) {
 		settings = obs_output_get_settings(stream->output);
-		dstr_copy(&mux, obs_data_get_string(settings, "muxer_settings"));
+		dstr_copy(&mux,
+			  obs_data_get_string(settings, "muxer_settings"));
 		obs_data_release(settings);
-	}
-	else {
+	} else {
 		dstr_copy(&mux, stream->settings.array);
 	}
 
