@@ -198,6 +198,7 @@
             }
         },
         {
+<<<<<<< HEAD
             "name": "YouTube - HLS",
             "common": true,
             "servers": [
@@ -219,6 +220,9 @@
         },
         {
             "name": "YouTube - RTMP",
+=======
+            "name": "YouTube / YouTube Gaming",
+>>>>>>> 77e099bf... Revert "plugins: Add Youtube-HLS to the Service dropdown"
             "common": true,
             "servers": [
                 {
@@ -1421,6 +1425,21 @@
                     "url": "rtmp://73846.livepush.myqcloud.com/live/"
                 }
             ]
+        }, 
+        {	
+            "name": "Mixcloud",	
+            "servers": [	
+                {	
+                    "name": "Default",	
+                    "url": "rtmp://rtmp.mixcloud.com/broadcast"	
+                }	
+            ],	
+            "recommended": {
+                "keyint": 2,	
+                "max video bitrate": 6000,	
+                "max audio bitrate": 320,	
+                "x264opts": "scenecut=0"	
+            }	
         },
         {
             "name": "SermonAudio Cloud",
