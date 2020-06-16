@@ -45,6 +45,7 @@ struct ffmpeg_muxer {
 	int64_t stop_ts;
 	uint64_t total_bytes;
 	struct dstr path;
+	struct dstr muxer_settings;
 	bool sent_headers;
 	volatile bool active;
 	volatile bool stopping;
@@ -66,8 +67,6 @@ struct ffmpeg_muxer {
 	volatile bool muxing;
 
 	bool is_network;
-
-	struct dstr settings;
 };
 
 static const char *ffmpeg_mux_getname(void *type)
@@ -116,6 +115,7 @@ static void ffmpeg_mux_destroy(void *data)
 
 	os_process_pipe_destroy(stream->pipe);
 	dstr_free(&stream->path);
+	dstr_free(&stream->muxer_settings);
 	bfree(stream);
 }
 
@@ -222,13 +222,13 @@ static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 	obs_data_t *settings;
 	struct dstr mux = {0};
 
-	if (dstr_is_empty(&stream->settings)) {
+	if (dstr_is_empty(&stream->muxer_settings)) {
 		settings = obs_output_get_settings(stream->output);
 		dstr_copy(&mux,
 			  obs_data_get_string(settings, "muxer_settings"));
 		obs_data_release(settings);
 	} else {
-		dstr_copy(&mux, stream->settings.array);
+		dstr_copy(&mux, stream->muxer_settings.array);
 	}
 
 	log_muxer_params(stream, mux.array);
@@ -238,7 +238,6 @@ static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 	dstr_catf(cmd, "\"%s\" ", mux.array ? mux.array : "");
 
 	dstr_free(&mux);
-	dstr_free(&stream->settings);
 }
 
 static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
@@ -376,7 +375,6 @@ static bool ffmpeg_hls_mux_start(void *data)
 	const char *path_str;
 	const char *stream_key;
 	struct dstr path = {0};
-	struct dstr settings = {0};
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -390,8 +388,8 @@ static bool ffmpeg_hls_mux_start(void *data)
 	stream_key = obs_service_get_key(service);
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
-	dstr_catf(&settings, "http_user_agent=libobs/%s", OBS_VERSION);
-	stream->settings = settings;
+	dstr_catf(&stream->muxer_settings, "http_user_agent=libobs/%s",
+		  OBS_VERSION);
 
 	start_pipe(stream, path.array);
 	dstr_free(&path);
