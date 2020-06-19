@@ -231,19 +231,19 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 	ui->connectAccount2->setVisible(false);
 	ui->disconnectAccount->setVisible(false);
 
-	int vertSpacing = ui->topLayout->verticalSpacing();
+	/**int vertSpacing = ui->topLayout->verticalSpacing();
 
 	QMargins m = ui->topLayout->contentsMargins();
 	m.setBottom(vertSpacing / 2);
-	ui->topLayout->setContentsMargins(m);
+	ui->topLayout->setContentsMargins(m);**/
 
-	m = ui->loginPageLayout->contentsMargins();
+	/**m = ui->loginPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
 	ui->loginPageLayout->setContentsMargins(m);
 
 	m = ui->streamkeyPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
-	ui->streamkeyPageLayout->setContentsMargins(m);
+	ui->streamkeyPageLayout->setContentsMargins(m);**/
 
 	setTitle(QTStr("Basic.AutoConfig.StreamPage"));
 	setSubTitle(QTStr("Basic.AutoConfig.StreamPage.SubTitle"));
@@ -550,6 +550,30 @@ void AutoConfigStreamPage::ServiceChanged()
 #endif
 
 	UpdateCompleted();
+}
+
+void AutoConfigStreamPage::UpdateMoreInfoLink()
+{
+	bool show_more_info = true;
+
+	if (IsCustomService()) {
+		// figure out if this line is necessary and why
+		ui->doBandwidthTest->setEnabled(true);
+		return;
+	}
+
+	// get whether show_more_info is true
+	// if so, connect to the link provided
+	if (show_more_info) {
+		moreInfoLink = // link provided
+	}
+
+	if (QString(streamKeyLink).isNull()) {
+		ui->moreInfoButton->hide();
+	} else {
+		ui->moreInfoButton->setTargetUrl(QUrl(streamKeyLink));
+		ui->moreInfoButton->show();
+	}
 }
 
 void AutoConfigStreamPage::UpdateKeyLink()
