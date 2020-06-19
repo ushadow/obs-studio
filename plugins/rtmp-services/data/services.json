@@ -199,7 +199,9 @@
         },
         {
             "name": "YouTube - HLS",
-            "common": true,
+            "common": false,
+            "show_more_info": true, 
+            "more_info_url": "https://www.youtube.com/live_dashboard",
             "servers": [
                 {
                     "name": "Primary YouTube ingest server",
