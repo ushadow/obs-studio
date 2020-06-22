@@ -262,6 +262,8 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 
 	connect(ui->service, SIGNAL(currentIndexChanged(int)), this,
 		SLOT(UpdateKeyLink()));
+	connect(ui->service, SIGNAL(currentIndexChanged(int)), this,
+		SLOT(UpdateMoreInfoLink()));
 
 	connect(ui->key, SIGNAL(textChanged(const QString &)), this,
 		SLOT(UpdateCompleted()));
@@ -554,25 +556,25 @@ void AutoConfigStreamPage::ServiceChanged()
 
 void AutoConfigStreamPage::UpdateMoreInfoLink()
 {
-	bool show_more_info = true;
-
 	if (IsCustomService()) {
 		// figure out if this line is necessary and why
 		ui->doBandwidthTest->setEnabled(true);
 		return;
 	}
 
+	if (show_more_info) {
 	// get whether show_more_info is true
 	// if so, connect to the link provided
-	if (show_more_info) {
 		moreInfoLink = // link provided
-	}
+		// get this from ui->service
+		// but this leads to a dead end in the update-window.cpp file 
 
-	if (QString(streamKeyLink).isNull()) {
-		ui->moreInfoButton->hide();
-	} else {
-		ui->moreInfoButton->setTargetUrl(QUrl(streamKeyLink));
-		ui->moreInfoButton->show();
+		if (QString(moreInfoLink).isNull()) {
+			ui->moreInfoButton->hide();
+		} else {
+			ui->moreInfoButton->setTargetUrl(QUrl(streamKeyLink));
+			ui->moreInfoButton->show();
+		}	
 	}
 }
 

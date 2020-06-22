@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1107</width>
-    <height>411</height>
+    <width>787</width>
+    <height>543</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,37 +30,73 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QStackedWidget" name="stackedWidget">
+    <widget class="QWidget" name="widget" native="true">
      <property name="sizePolicy">
       <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <widget class="QWidget" name="stackedWidgetPage1">
-      <layout class="QHBoxLayout" name="horizontalLayout_6">
-       <property name="bottomMargin">
-        <number>12</number>
-       </property>
-       <item>
-        <widget class="QLabel" name="serviceLabel">
-         <property name="text">
-          <string>Basic.AutoConfig.StreamPage.Service</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QComboBox" name="service"/>
-       </item>
-       <item>
-        <widget class="UrlPushButton" name="moreInfoButton">
-         <property name="text">
-          <string>Basic.AutoConfig.StreamPage.MoreInfo</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
+     <layout class="QFormLayout" name="topLayout">
+      <property name="fieldGrowthPolicy">
+       <enum>QFormLayout::ExpandingFieldsGrow</enum>
+      </property>
+      <property name="labelAlignment">
+       <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+      </property>
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
+      <item row="0" column="0">
+       <spacer name="horizontalSpacer_6">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>87</width>
+          <height>0</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="serviceLabel">
+        <property name="text">
+         <string>Basic.AutoConfig.StreamPage.Service</string>
+        </property>
+        <property name="buddy">
+         <cstring>service</cstring>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QComboBox" name="service"/>
+      </item>
+      <item row="3" column="1">
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>12</width>
+          <height>12</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="0" column="1">
+       <widget class="UrlPushButton" name="moreInfoButton">
+        <property name="text">
+         <string>Basic.AutoConfig.StreamPage.GetStreamKey</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </widget>
    </item>
    <item>
@@ -166,13 +202,6 @@
        <property name="labelAlignment">
         <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
        </property>
-       <item row="0" column="0">
-        <widget class="QLabel" name="serverLabel">
-         <property name="text">
-          <string>Basic.AutoConfig.StreamPage.Server</string>
-         </property>
-        </widget>
-       </item>
        <item row="0" column="1">
         <widget class="QStackedWidget" name="serverStackedWidget">
          <property name="currentIndex">
@@ -389,6 +418,13 @@
          </property>
         </widget>
        </item>
+       <item row="0" column="0">
+        <widget class="QLabel" name="serverLabel">
+         <property name="text">
+          <string>Basic.AutoConfig.StreamPage.Server</string>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </widget>
@@ -411,12 +447,12 @@
    <slot>click()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>590</x>
-     <y>468</y>
+     <x>382</x>
+     <y>279</y>
     </hint>
     <hint type="destinationlabel">
-     <x>201</x>
-     <y>125</y>
+     <x>114</x>
+     <y>82</y>
     </hint>
    </hints>
   </connection>
