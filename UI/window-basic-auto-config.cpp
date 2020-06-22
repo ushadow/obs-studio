@@ -231,19 +231,19 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 	ui->connectAccount2->setVisible(false);
 	ui->disconnectAccount->setVisible(false);
 
-	/**int vertSpacing = ui->topLayout->verticalSpacing();
+	int vertSpacing = ui->topLayout->verticalSpacing();
 
 	QMargins m = ui->topLayout->contentsMargins();
 	m.setBottom(vertSpacing / 2);
-	ui->topLayout->setContentsMargins(m);**/
+	ui->topLayout->setContentsMargins(m);
 
-	/**m = ui->loginPageLayout->contentsMargins();
+	m = ui->loginPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
 	ui->loginPageLayout->setContentsMargins(m);
 
 	m = ui->streamkeyPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
-	ui->streamkeyPageLayout->setContentsMargins(m);**/
+	ui->streamkeyPageLayout->setContentsMargins(m);
 
 	setTitle(QTStr("Basic.AutoConfig.StreamPage"));
 	setSubTitle(QTStr("Basic.AutoConfig.StreamPage.SubTitle"));
@@ -556,23 +556,29 @@ void AutoConfigStreamPage::ServiceChanged()
 
 void AutoConfigStreamPage::UpdateMoreInfoLink()
 {
+	json_t *root;
+	root = open_services_file();
+	json_t* service;
+	const char *new_name;
+
 	if (IsCustomService()) {
 		// figure out if this line is necessary and why
 		ui->doBandwidthTest->setEnabled(true);
 		return;
 	}
 
-	if (show_more_info) {
-	// get whether show_more_info is true
-	// if so, connect to the link provided
-		moreInfoLink = // link provided
-		// get this from ui->service
-		// but this leads to a dead end in the update-window.cpp file 
+	if (root) {
+		QString serviceName = ui->service->currentText();
+		json_t *serv = find_service(root, serviceName, &new_name);
+		if (serv) {
+			json_t *more_info_link = json_object_get(serv, "more_info_link");
+			printf("Maya's log: More Info Link is: %s\n", moreInfoLink);
+		}
 
-		if (QString(moreInfoLink).isNull()) {
+		if (!more_info_link) {
 			ui->moreInfoButton->hide();
 		} else {
-			ui->moreInfoButton->setTargetUrl(QUrl(streamKeyLink));
+			ui->moreInfoButton->setTargetUrl(QUrl(moreInfoLink));
 			ui->moreInfoButton->show();
 		}	
 	}
