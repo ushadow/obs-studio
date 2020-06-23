@@ -360,22 +360,20 @@ static void fill_servers(obs_property_t *servers_prop, json_t *service,
 	}
 }
 
-static void fill_more_info_link(obs_property_t *more_info_prop, json_t *service,
+static void fill_more_info_link(json_t *service,
 			 const char *name, obs_data_t* settings)
 {
+	printf("Maya's log: in fill_more_info_link: service name %s\n", name);
 	json_t* more_info;
 	const char* more_info_link; 
 
-	obs_property_list_clear(more_info_prop);
-	more_info = json_object_get(service, "more_info_link");
-
-	if (more_info) {
-		more_info_link = get_string_val(more_info, "more_info_link");
-		if (!more_info_link) {
-			return; 
-		}
+	more_info_link = get_string_val(service, "more_info_link"); 
+	if (more_info_link) {
+		printf("Maya's log: in fill_more_info_link: set settings more_info_link %s\n", more_info_link);
 		obs_data_set_string(settings, "more_info_link", more_info_link);
-	}
+		return; 
+	} 
+	printf("Maya's log: in fill_more_info_link: service has no more_info_link\n");
 }
 
 static inline json_t *find_service(json_t *root, const char *name,
@@ -440,7 +438,8 @@ static bool service_selected(obs_properties_t *props, obs_property_t *p,
 	}
 
 	fill_servers(obs_properties_get(props, "server"), service, name);
-	fill_more_info_link(obs_properties_get(props, "more_info_link"), service, name, settings);
+	printf("Maya's log: fill_more_info_link is being called\n");
+	fill_more_info_link(service, name, settings);
 	return true;
 }
 
