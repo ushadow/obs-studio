@@ -360,6 +360,24 @@ static void fill_servers(obs_property_t *servers_prop, json_t *service,
 	}
 }
 
+static void fill_more_info_link(obs_property_t *more_info_prop, json_t *service,
+			 const char *name, obs_data_t* settings)
+{
+	json_t* more_info;
+	const char* more_info_link; 
+
+	obs_property_list_clear(more_info_prop);
+	more_info = json_object_get(service, "more_info_link");
+
+	if (more_info) {
+		more_info_link = get_string_val(more_info, "more_info_link");
+		if (!more_info_link) {
+			return; 
+		}
+		obs_data_set_string(settings, "more_info_link", more_info_link);
+	}
+}
+
 static inline json_t *find_service(json_t *root, const char *name,
 				   const char **p_new_name)
 {
@@ -422,7 +440,7 @@ static bool service_selected(obs_properties_t *props, obs_property_t *p,
 	}
 
 	fill_servers(obs_properties_get(props, "server"), service, name);
-
+	fill_more_info_link(obs_properties_get(props, "more_info_link"), service, name, settings);
 	return true;
 }
 
@@ -471,6 +489,9 @@ static obs_properties_t *rtmp_common_properties(void *unused)
 
 	obs_properties_add_text(ppts, "key", obs_module_text("StreamKey"),
 				OBS_TEXT_PASSWORD);
+	
+	obs_properties_add_text(ppts, "more_info_link", obs_module_text("MoreInfo"), OBS_TEXT_PASSWORD);
+		
 	return ppts;
 }
 
