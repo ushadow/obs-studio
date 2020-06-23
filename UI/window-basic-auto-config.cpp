@@ -556,31 +556,24 @@ void AutoConfigStreamPage::ServiceChanged()
 
 void AutoConfigStreamPage::UpdateMoreInfoLink()
 {
-	json_t *root;
-	root = open_services_file();
-	json_t* service;
-	const char *new_name;
 
+	const char* more_info_link;
 	if (IsCustomService()) {
 		// figure out if this line is necessary and why
 		ui->doBandwidthTest->setEnabled(true);
 		return;
 	}
+	OBSData settings = obs_data_create();
+	obs_data_release(settings);
 
-	if (root) {
-		QString serviceName = ui->service->currentText();
-		json_t *serv = find_service(root, serviceName, &new_name);
-		if (serv) {
-			json_t *more_info_link = json_object_get(serv, "more_info_link");
-			printf("Maya's log: More Info Link is: %s\n", moreInfoLink);
-		}
+	more_info_link = obs_data_get_string(settings, "more_info_link");
+	printf("Maya's log: More Info Link is: %s\n", more_info_link);
 
-		if (!more_info_link) {
-			ui->moreInfoButton->hide();
-		} else {
-			ui->moreInfoButton->setTargetUrl(QUrl(moreInfoLink));
-			ui->moreInfoButton->show();
-		}	
+	if (!more_info_link) {
+		ui->moreInfoButton->hide();
+	} else {
+		ui->moreInfoButton->setTargetUrl(QUrl(more_info_link));
+		ui->moreInfoButton->show();
 	}
 }
 
