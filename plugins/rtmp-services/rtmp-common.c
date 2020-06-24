@@ -482,7 +482,6 @@ static obs_properties_t *rtmp_common_properties(void *unused)
 
 	obs_properties_add_text(ppts, "key", obs_module_text("StreamKey"),
 				OBS_TEXT_PASSWORD);
-
 	return ppts;
 }
 
