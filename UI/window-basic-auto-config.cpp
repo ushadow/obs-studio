@@ -562,7 +562,6 @@ void AutoConfigStreamPage::UpdateMoreInfoLink()
 	QString serviceName;
 
 	if (IsCustomService()) {
-		ui->doBandwidthTest->setEnabled(true);
 		return;
 	}
 
