@@ -52,7 +52,8 @@ static OBSData OpenServiceSettings(std::string &type)
 }
 
 static void GetServiceInfo(std::string &type, std::string &service,
-			   std::string &server, std::string &key, std::string &more_info_link)
+			   std::string &server, std::string &key,
+			   std::string &more_info_link)
 {
 	OBSData settings = OpenServiceSettings(type);
 
@@ -236,7 +237,7 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 
 	QMargins m = ui->topLayout->contentsMargins();
 	m.setBottom(vertSpacing / 2);
-	ui->topLayout->setContentsMargins(m); 
+	ui->topLayout->setContentsMargins(m);
 
 	m = ui->loginPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
@@ -557,9 +558,9 @@ void AutoConfigStreamPage::ServiceChanged()
 
 void AutoConfigStreamPage::UpdateMoreInfoLink()
 {
-	const char* more_info_link;
+	const char *more_info_link;
 	QString serviceName;
-	
+
 	if (IsCustomService()) {
 		ui->doBandwidthTest->setEnabled(true);
 		return;
@@ -576,14 +577,11 @@ void AutoConfigStreamPage::UpdateMoreInfoLink()
 	obs_property_modified(services, settings);
 
 	more_info_link = obs_data_get_string(settings, "more_info_link");
-	printf("Maya's log: More Info Link is: %s\n", more_info_link);
 
 	if ((!more_info_link) || (*more_info_link == '\0')) {
-		printf("Maya's log: Hiding link\n");
 		ui->moreInfoButton->hide();
 	} else {
 		ui->moreInfoButton->setTargetUrl(QUrl(more_info_link));
-		printf("Maya's log: Showing link\n");
 		ui->moreInfoButton->show();
 	}
 	obs_properties_destroy(props);
