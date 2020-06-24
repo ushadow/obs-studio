@@ -360,20 +360,15 @@ static void fill_servers(obs_property_t *servers_prop, json_t *service,
 	}
 }
 
-static void fill_more_info_link(json_t *service,
-			 const char *name, obs_data_t* settings)
+static void fill_more_info_link(json_t *service, obs_data_t* settings)
 {
-	printf("Maya's log: in fill_more_info_link: service name %s\n", name);
-	json_t* more_info;
 	const char* more_info_link; 
 
 	more_info_link = get_string_val(service, "more_info_link"); 
 	if (more_info_link) {
-		printf("Maya's log: in fill_more_info_link: set settings more_info_link %s\n", more_info_link);
 		obs_data_set_string(settings, "more_info_link", more_info_link);
 		return; 
 	} 
-	printf("Maya's log: in fill_more_info_link: service has no more_info_link\n");
 }
 
 static inline json_t *find_service(json_t *root, const char *name,
@@ -438,8 +433,7 @@ static bool service_selected(obs_properties_t *props, obs_property_t *p,
 	}
 
 	fill_servers(obs_properties_get(props, "server"), service, name);
-	printf("Maya's log: fill_more_info_link is being called\n");
-	fill_more_info_link(service, name, settings);
+	fill_more_info_link(service, settings);
 	return true;
 }
 
@@ -488,9 +482,7 @@ static obs_properties_t *rtmp_common_properties(void *unused)
 
 	obs_properties_add_text(ppts, "key", obs_module_text("StreamKey"),
 				OBS_TEXT_PASSWORD);
-	
-	obs_properties_add_text(ppts, "more_info_link", obs_module_text("MoreInfo"), OBS_TEXT_PASSWORD);
-		
+
 	return ppts;
 }
 
