@@ -232,11 +232,12 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 	ui->connectAccount2->setVisible(false);
 	ui->disconnectAccount->setVisible(false);
 
+	/***
 	int vertSpacing = ui->topLayout->verticalSpacing();
 
 	QMargins m = ui->topLayout->contentsMargins();
 	m.setBottom(vertSpacing / 2);
-	ui->topLayout->setContentsMargins(m);
+	ui->topLayout->setContentsMargins(m); 
 
 	m = ui->loginPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
@@ -245,6 +246,7 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 	m = ui->streamkeyPageLayout->contentsMargins();
 	m.setTop(vertSpacing / 2);
 	ui->streamkeyPageLayout->setContentsMargins(m);
+	**/
 
 	setTitle(QTStr("Basic.AutoConfig.StreamPage"));
 	setSubTitle(QTStr("Basic.AutoConfig.StreamPage.SubTitle"));
