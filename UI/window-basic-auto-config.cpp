@@ -562,6 +562,7 @@ void AutoConfigStreamPage::UpdateMoreInfoLink()
 	QString serviceName;
 
 	if (IsCustomService()) {
+		ui->moreInfoButton->hide();
 		return;
 	}
 
