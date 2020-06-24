@@ -360,15 +360,15 @@ static void fill_servers(obs_property_t *servers_prop, json_t *service,
 	}
 }
 
-static void fill_more_info_link(json_t *service, obs_data_t* settings)
+static void fill_more_info_link(json_t *service, obs_data_t *settings)
 {
-	const char* more_info_link; 
+	const char *more_info_link;
 
-	more_info_link = get_string_val(service, "more_info_link"); 
+	more_info_link = get_string_val(service, "more_info_link");
 	if (more_info_link) {
 		obs_data_set_string(settings, "more_info_link", more_info_link);
-		return; 
-	} 
+		return;
+	}
 }
 
 static inline json_t *find_service(json_t *root, const char *name,
