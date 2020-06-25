@@ -52,13 +52,15 @@ static OBSData OpenServiceSettings(std::string &type)
 }
 
 static void GetServiceInfo(std::string &type, std::string &service,
-			   std::string &server, std::string &key)
+			   std::string &server, std::string &key,
+			   std::string &more_info_link)
 {
 	OBSData settings = OpenServiceSettings(type);
 
 	service = obs_data_get_string(settings, "service");
 	server = obs_data_get_string(settings, "server");
 	key = obs_data_get_string(settings, "key");
+	more_info_link = obs_data_get_string(settings, "more_info_link");
 }
 
 /* ------------------------------------------------------------------------- */
@@ -262,6 +264,8 @@ AutoConfigStreamPage::AutoConfigStreamPage(QWidget *parent)
 
 	connect(ui->service, SIGNAL(currentIndexChanged(int)), this,
 		SLOT(UpdateKeyLink()));
+	connect(ui->service, SIGNAL(currentIndexChanged(int)), this,
+		SLOT(UpdateMoreInfoLink()));
 
 	connect(ui->key, SIGNAL(textChanged(const QString &)), this,
 		SLOT(UpdateCompleted()));
@@ -552,6 +556,35 @@ void AutoConfigStreamPage::ServiceChanged()
 	UpdateCompleted();
 }
 
+void AutoConfigStreamPage::UpdateMoreInfoLink()
+{
+	if (IsCustomService()) {
+		ui->moreInfoButton->hide();
+		return;
+	}
+
+	QString serviceName = ui->service->currentText();
+	obs_properties_t *props = obs_get_service_properties("rtmp_common");
+	obs_property_t *services = obs_properties_get(props, "service");
+
+	OBSData settings = obs_data_create();
+	obs_data_release(settings);
+
+	obs_data_set_string(settings, "service", QT_TO_UTF8(serviceName));
+	obs_property_modified(services, settings);
+
+	const char *more_info_link =
+		obs_data_get_string(settings, "more_info_link");
+
+	if (!more_info_link || (*more_info_link == '\0')) {
+		ui->moreInfoButton->hide();
+	} else {
+		ui->moreInfoButton->setTargetUrl(QUrl(more_info_link));
+		ui->moreInfoButton->show();
+	}
+	obs_properties_destroy(props);
+}
+
 void AutoConfigStreamPage::UpdateKeyLink()
 {
 	if (IsCustomService()) {
@@ -566,8 +599,7 @@ void AutoConfigStreamPage::UpdateKeyLink()
 	if (serviceName == "Twitch") {
 		streamKeyLink =
 			"https://www.twitch.tv/broadcast/dashboard/streamkey";
-	} else if ((serviceName == "YouTube - RTMP") ||
-		   (serviceName == "YouTube - HLS")) {
+	} else if (serviceName.startsWith("YouTube")) {
 		streamKeyLink = "https://www.youtube.com/live_dashboard";
 		isYoutube = true;
 	} else if (serviceName.startsWith("Restream.io")) {
@@ -723,7 +755,7 @@ AutoConfig::AutoConfig(QWidget *parent) : QWizard(parent)
 	installEventFilter(CreateShortcutFilter());
 
 	std::string serviceType;
-	GetServiceInfo(serviceType, serviceName, server, key);
+	GetServiceInfo(serviceType, serviceName, server, key, more_info_link);
 #ifdef _WIN32
 	setWizardStyle(QWizard::ModernStyle);
 #endif
@@ -792,6 +824,7 @@ AutoConfig::AutoConfig(QWidget *parent) : QWizard(parent)
 
 	streamPage->UpdateServerList();
 	streamPage->UpdateKeyLink();
+	streamPage->UpdateMoreInfoLink();
 	streamPage->lastService.clear();
 
 	if (!customServer) {
@@ -942,6 +975,7 @@ void AutoConfig::SaveStreamSettings()
 		obs_data_set_string(settings, "service", serviceName.c_str());
 	obs_data_set_string(settings, "server", server.c_str());
 	obs_data_set_string(settings, "key", key.c_str());
+	obs_data_set_string(settings, "more_info_link", more_info_link.c_str());
 
 	OBSService newService = obs_service_create(
 		service_id, "default_service", settings, hotkeyData);

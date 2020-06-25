@@ -83,6 +83,7 @@ class AutoConfig : public QWizard {
 	std::string serverName;
 	std::string server;
 	std::string key;
+	std::string more_info_link;
 
 	bool hardwareEncodingAvailable = false;
 	bool nvencAvailable = false;
@@ -193,6 +194,7 @@ public slots:
 	void on_useStreamKey_clicked();
 	void ServiceChanged();
 	void UpdateKeyLink();
+	void UpdateMoreInfoLink();
 	void UpdateServerList();
 	void UpdateCompleted();
 };
