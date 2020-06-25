@@ -232,7 +232,7 @@ void OBSBasicSettings::SaveStream1Settings()
 		main->auth->LoadUI();
 }
 
-void AutoConfigStreamPage::UpdateMoreInfoLink()
+void OBSBasicSettings::UpdateMoreInfoLink()
 {
 	if (IsCustomService()) {
 		ui->moreInfoButton->hide();
