@@ -558,15 +558,12 @@ void AutoConfigStreamPage::ServiceChanged()
 
 void AutoConfigStreamPage::UpdateMoreInfoLink()
 {
-	const char *more_info_link;
-	QString serviceName;
-
 	if (IsCustomService()) {
 		ui->moreInfoButton->hide();
 		return;
 	}
 
-	serviceName = ui->service->currentText();
+	QString serviceName = ui->service->currentText();
 	obs_properties_t *props = obs_get_service_properties("rtmp_common");
 	obs_property_t *services = obs_properties_get(props, "service");
 
@@ -576,9 +573,10 @@ void AutoConfigStreamPage::UpdateMoreInfoLink()
 	obs_data_set_string(settings, "service", QT_TO_UTF8(serviceName));
 	obs_property_modified(services, settings);
 
-	more_info_link = obs_data_get_string(settings, "more_info_link");
+	const char *more_info_link =
+		obs_data_get_string(settings, "more_info_link");
 
-	if ((!more_info_link) || (*more_info_link == '\0')) {
+	if (!more_info_link || (*more_info_link == '\0')) {
 		ui->moreInfoButton->hide();
 	} else {
 		ui->moreInfoButton->setTargetUrl(QUrl(more_info_link));
@@ -601,8 +599,7 @@ void AutoConfigStreamPage::UpdateKeyLink()
 	if (serviceName == "Twitch") {
 		streamKeyLink =
 			"https://www.twitch.tv/broadcast/dashboard/streamkey";
-	} else if ((serviceName == "YouTube - RTMP") ||
-		   (serviceName == "YouTube - HLS")) {
+	} else if (serviceName.startsWith("Youtube")) {
 		streamKeyLink = "https://www.youtube.com/live_dashboard";
 		isYoutube = true;
 	} else if (serviceName.startsWith("Restream.io")) {
