@@ -119,7 +119,7 @@
      <item>
       <widget class="QStackedWidget" name="settingsPages">
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="generalPage">
         <layout class="QVBoxLayout" name="verticalLayout_18">
@@ -151,8 +151,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>810</width>
-              <height>1087</height>
+              <width>803</width>
+              <height>1026</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_19">
@@ -1088,12 +1088,6 @@
                 </item>
                 <item>
                  <widget class="UrlPushButton" name="getStreamKeyButton">
-                  <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-                    <horstretch>0</horstretch>
-                    <verstretch>0</verstretch>
-                   </sizepolicy>
-                  </property>
                   <property name="toolTip">
                    <string/>
                   </property>
@@ -1300,8 +1294,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>740</width>
-              <height>767</height>
+              <width>603</width>
+              <height>631</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_21">
@@ -2432,7 +2426,7 @@
                                  <rect>
                                   <x>9</x>
                                   <y>0</y>
-                                  <width>250</width>
+                                  <width>236</width>
                                   <height>25</height>
                                  </rect>
                                 </property>
@@ -3795,8 +3789,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>691</width>
-              <height>601</height>
+              <width>555</width>
+              <height>469</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_50">
@@ -4651,8 +4645,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>755</width>
-              <height>930</height>
+              <width>596</width>
+              <height>781</height>
              </rect>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_23">
