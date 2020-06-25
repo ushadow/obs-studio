@@ -71,6 +71,8 @@ void OBSBasicSettings::InitStreamPage()
 		SLOT(UpdateServerList()));
 	connect(ui->service, SIGNAL(currentIndexChanged(int)), this,
 		SLOT(UpdateKeyLink()));
+	connect(ui->service, SIGNAL(currentIndexChanged(int)), this,
+		SLOT(UpdateMoreInfoLink()));
 }
 
 void OBSBasicSettings::LoadStream1Settings()
@@ -134,6 +136,7 @@ void OBSBasicSettings::LoadStream1Settings()
 	obs_data_release(settings);
 
 	UpdateKeyLink();
+	UpdateMoreInfoLink();
 
 	bool streamActive = obs_frontend_streaming_active();
 	ui->streamPage->setEnabled(!streamActive);
@@ -206,6 +209,35 @@ void OBSBasicSettings::SaveStream1Settings()
 		main->auth->LoadUI();
 }
 
+void OBSBasicSettings::UpdateMoreInfoLink()
+{
+	if (IsCustomService()) {
+		ui->moreInfoButton->hide();
+		return;
+	}
+
+	QString serviceName = ui->service->currentText();
+	obs_properties_t *props = obs_get_service_properties("rtmp_common");
+	obs_property_t *services = obs_properties_get(props, "service");
+
+	OBSData settings = obs_data_create();
+	obs_data_release(settings);
+
+	obs_data_set_string(settings, "service", QT_TO_UTF8(serviceName));
+	obs_property_modified(services, settings);
+
+	const char *more_info_link =
+		obs_data_get_string(settings, "more_info_link");
+
+	if (!more_info_link || (*more_info_link == '\0')) {
+		ui->moreInfoButton->hide();
+	} else {
+		ui->moreInfoButton->setTargetUrl(QUrl(more_info_link));
+		ui->moreInfoButton->show();
+	}
+	obs_properties_destroy(props);
+}
+
 void OBSBasicSettings::UpdateKeyLink()
 {
 	if (IsCustomService()) {
@@ -218,7 +250,7 @@ void OBSBasicSettings::UpdateKeyLink()
 	if (serviceName == "Twitch") {
 		streamKeyLink =
 			"https://www.twitch.tv/broadcast/dashboard/streamkey";
-	} else if (serviceName == "YouTube / YouTube Gaming") {
+	} else if (serviceName.startsWith("YouTube")) {
 		streamKeyLink = "https://www.youtube.com/live_dashboard";
 	} else if (serviceName.startsWith("Restream.io")) {
 		streamKeyLink =
