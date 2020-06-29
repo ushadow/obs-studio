@@ -376,8 +376,8 @@ static bool ffmpeg_hls_mux_start(void *data)
 	const char *stream_key;
 	struct dstr path = {0};
 	obs_encoder_t *vencoder;
-	obs_data_t *settings; 
-	int keyint_sec; 
+	obs_data_t *settings;
+	int keyint_sec;
 
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
@@ -400,8 +400,9 @@ static bool ffmpeg_hls_mux_start(void *data)
 	settings = obs_encoder_get_settings(vencoder);
 	keyint_sec = obs_data_get_int(settings, "keyint_sec");
 	if (keyint_sec)
-		printf("Maya's log: keyint_sec is %d", keyint_sec);
 		dstr_catf(&stream->muxer_settings, " hls_time=%d", keyint_sec);
+
+	obs_data_release(settings);
 
 	start_pipe(stream, path.array);
 	dstr_free(&path);
