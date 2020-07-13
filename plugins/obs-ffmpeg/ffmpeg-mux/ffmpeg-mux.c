@@ -29,7 +29,6 @@
 
 #include <obs-module.h>
 #include <util/dstr.h>
-
 #include <libavformat/avformat.h>
 
 #define ANSI_COLOR_YELLOW "\x1b[0;93m"

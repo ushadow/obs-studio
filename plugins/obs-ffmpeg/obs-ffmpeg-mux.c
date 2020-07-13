@@ -131,29 +131,6 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 	return stream;
 }
 
-static void ffmpeg_hls_log_callback(void *param, int level, const char *format,
-				    va_list args)
-{
-	if (level <= AV_LOG_WARNING)
-		blogva(LOG_WARNING, format, args);
-
-	UNUSED_PARAMETER(param);
-}
-
-static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
-{
-	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
-	stream->output = output;
-
-	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
-		stream->is_network = true;
-
-	av_log_set_callback(ffmpeg_hls_log_callback);
-
-	UNUSED_PARAMETER(settings);
-	return stream;
-}
-
 #ifdef _WIN32
 #define FFMPEG_MUX "obs-ffmpeg-mux.exe"
 #else
