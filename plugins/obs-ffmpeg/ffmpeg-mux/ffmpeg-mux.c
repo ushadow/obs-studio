@@ -31,9 +31,14 @@
 #include <util/dstr.h>
 #include <libavformat/avformat.h>
 
+#define ANSI_COLOR_BLK "\x1b[0;90m"
+#define ANSI_COLOR_RED "\x1b[0;91m"
 #define ANSI_COLOR_YELLOW "\x1b[0;93m"
 #define ANSI_COLOR_MAGENTA "\x1b[0;95m"
 #define ANSI_COLOR_RESET "\x1b[0m"
+#define ANSI_BACKGRD_BLK "\x1b[40m"
+#define ANSI_BACKGRD_BLK_HI "\x1b[40;1m"
+#define ANSI_BACKGRD_RESET "\x1b[0m"
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 #define CODEC_FLAG_GLOBAL_H AV_CODEC_FLAG_GLOBAL_HEADER
@@ -233,14 +238,18 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 		break;
 
 	case AV_LOG_WARNING:
-		fprintf(stdout, "warning: %s[ffmpeg_muxer]%s %s%s%s",
-			ANSI_COLOR_MAGENTA, ANSI_COLOR_RESET, ANSI_COLOR_YELLOW,
-			out, ANSI_COLOR_RESET);
+		fprintf(stdout, "%swarning: %s[ffmpeg_muxer]%s %s%s%s%s",
+			ANSI_BACKGRD_BLK, ANSI_COLOR_MAGENTA, ANSI_COLOR_RESET,
+			ANSI_COLOR_YELLOW, out, ANSI_COLOR_RESET,
+			ANSI_BACKGRD_RESET);
 		fflush(stdout);
 		break;
 
 	case AV_LOG_ERROR:
-		fprintf(stderr, "error: [ffmpeg_muxer] %s", out);
+		fprintf(stderr, "%serror: %s[ffmpeg_muxer]%s %s%s%s%s",
+			ANSI_BACKGRD_BLK, ANSI_COLOR_BLK, ANSI_COLOR_RESET,
+			ANSI_COLOR_RED, out, ANSI_COLOR_RESET,
+			ANSI_BACKGRD_RESET);
 		fflush(stderr);
 	}
 
@@ -304,15 +313,15 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	}
 
 	*p_audio = audio;
-	if(strcmp(global_stream_key, "") == 0) {
+	if (strcmp(global_stream_key, "") == 0) {
 		printf("Maya's log: global stream key empty before set\n");
 	}
 
 	get_opt_str(argc, argv, &global_stream_key, "stream key");
 	printf("Maya's log: stream_key is %s\n", global_stream_key);
-	if (strcmp(global_stream_key, "") != 0) 
+	if (strcmp(global_stream_key, "") != 0)
 		printf("Maya's log: setting callback\n");
-		av_log_set_callback(ffmpeg_log_callback);
+	av_log_set_callback(ffmpeg_log_callback);
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
 
