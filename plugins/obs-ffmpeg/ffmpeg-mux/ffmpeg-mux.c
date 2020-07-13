@@ -221,7 +221,8 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 	vsnprintf(out, sizeof(out), format, args);
 	dstr_copy(&log_message, out);
 
-	if ((strcmp(stream_key, "") != 0) && (dstr_find(&log_message, stream_key)))
+	if ((strcmp(stream_key, "") != 0) &&
+	    (dstr_find(&log_message, stream_key)))
 		dstr_replace(&log_message, stream_key, "{stream_key}");
 
 	strcpy(out, log_message.array);
@@ -309,7 +310,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	printf("\nMaya's log: stream_key is %s\n", global_stream_key);
 	if (strcmp(global_stream_key, "") != 0)
 		printf("Maya's log: setting callback\n");
-		av_log_set_callback(ffmpeg_log_callback);
+	av_log_set_callback(ffmpeg_log_callback);
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
 
