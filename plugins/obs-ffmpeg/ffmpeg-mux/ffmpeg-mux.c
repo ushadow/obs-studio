@@ -304,9 +304,14 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	}
 
 	*p_audio = audio;
+	if(strcmp(global_stream_key, "") == 0) {
+		printf("Maya's log: global stream key empty before set\n");
+	}
 
 	get_opt_str(argc, argv, &global_stream_key, "stream key");
+	printf("Maya's log: stream_key is %s\n", global_stream_key);
 	if (strcmp(global_stream_key, "") != 0) 
+		printf("Maya's log: setting callback\n");
 		av_log_set_callback(ffmpeg_log_callback);
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
