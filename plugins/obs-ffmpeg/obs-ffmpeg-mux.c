@@ -293,7 +293,6 @@ static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 	}
 
 	add_stream_key(cmd, stream);
-
 	add_muxer_params(cmd, stream);
 }
 
@@ -449,7 +448,6 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 	int ret = -1;
 
 	if (active(stream)) {
-
 		ret = os_process_pipe_destroy(stream->pipe);
 		stream->pipe = NULL;
 
@@ -460,7 +458,6 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		if (!service)
 			return false;
 		stream_key = obs_service_get_key(service);
-
 		dstr_replace(&stream->path, stream_key, "{stream_key}");
 		info("Output of file '%s' stopped", stream->path.array);
 	}

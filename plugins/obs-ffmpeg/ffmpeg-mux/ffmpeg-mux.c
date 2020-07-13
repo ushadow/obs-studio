@@ -212,11 +212,11 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 				va_list args)
 {
 	const char *stream_key;
-	struct dstr log_message = {0};
+	char out[4096];
 
+	struct dstr log_message = {0};
 	stream_key = global_stream_key;
 
-	char out[4096];
 	vsnprintf(out, sizeof(out), format, args);
 	dstr_copy(&log_message, out);
 
