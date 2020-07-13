@@ -21,4 +21,3 @@ target_link_libraries(obs-ffmpeg-mux
 set_target_properties(obs-ffmpeg-mux PROPERTIES FOLDER "plugins/obs-ffmpeg")
 
 install_obs_core(obs-ffmpeg-mux)
-
