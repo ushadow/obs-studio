@@ -131,6 +131,31 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 	return stream;
 }
 
+
+static void ffmpeg_hls_log_callback(void *param, int level, const char *format,
+				va_list args)
+{
+	if (level <= AV_LOG_WARNING)
+		blogva(LOG_WARNING, format, args);
+
+	UNUSED_PARAMETER(param);
+}
+
+static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
+{
+	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
+	stream->output = output;
+
+	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
+		stream->is_network = true;
+
+	av_log_set_callback(ffmpeg_hls_log_callback);
+
+	UNUSED_PARAMETER(settings);
+	return stream;
+}
+
+
 #ifdef _WIN32
 #define FFMPEG_MUX "obs-ffmpeg-mux.exe"
 #else
@@ -217,6 +242,21 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 	av_dict_free(&dict);
 }
 
+static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
+{
+	obs_data_t* service;
+	const char *path_str;
+	const char* stream_key;
+
+	service = obs_output_get_service(stream->output);
+	if (!service)
+		return;
+	path_str = obs_service_get_url(service);
+	stream_key = obs_service_get_key(service);
+
+	dstr_catf(cmd, "\"%s\" ", stream_key ? stream_key : "");
+}
+
 static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
 {
 	struct dstr mux = {0};
@@ -276,6 +316,8 @@ static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 			add_audio_encoder_params(cmd, aencoders[i]);
 		}
 	}
+
+	add_stream_key(cmd, stream);
 
 	add_muxer_params(cmd, stream);
 }
@@ -420,22 +462,31 @@ static bool ffmpeg_hls_mux_start(void *data)
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
 
-	info("Writing to path '%s'...", stream->path.array);
+	info("Writing to path '%s'...", path_str);
 
 	return true;
 }
 
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
+	obs_service_t *service;
+	const char *stream_key;
 	int ret = -1;
 
 	if (active(stream)) {
+
 		ret = os_process_pipe_destroy(stream->pipe);
 		stream->pipe = NULL;
 
 		os_atomic_set_bool(&stream->active, false);
 		os_atomic_set_bool(&stream->sent_headers, false);
 
+		service = obs_output_get_service(stream->output);
+		if (!service)
+			return false;
+		stream_key = obs_service_get_key(service);
+
+		dstr_replace(&stream->path, stream_key, "{stream_key}");
 		info("Output of file '%s' stopped", stream->path.array);
 	}
 

@@ -27,6 +27,9 @@
 #include <stdlib.h>
 #include "ffmpeg-mux.h"
 
+#include <obs-module.h>
+#include <util/dstr.h>
+
 #include <libavformat/avformat.h>
 
 #if LIBAVCODEC_VERSION_MAJOR >= 58
@@ -36,6 +39,8 @@
 #endif
 
 /* ------------------------------------------------------------------------- */
+
+static char* global_stream_key;
 
 struct resize_buf {
 	uint8_t *buf;
@@ -200,6 +205,45 @@ static bool get_audio_params(struct audio_params *audio, int *argc,
 	return true;
 }
 
+static void ffmpeg_log_callback(void *param, int level, const char *format,
+				va_list args)
+{
+	const char* stream_key;
+	struct dstr log_message = {0};
+
+	stream_key = global_stream_key;
+
+	char out[4096];
+	vsnprintf(out, sizeof(out), format, args);
+	dstr_copy(&log_message, out);
+
+	if (dstr_find(&log_message, stream_key))
+		dstr_replace(&log_message, stream_key, "{stream_key}");
+
+	strcpy(out, log_message.array);
+
+	switch (level) {
+		case AV_LOG_INFO:
+			fprintf(stdout, "info: [ffmpeg_muxer] %s\n", out);
+			fflush(stdout);
+			break;
+
+		case AV_LOG_WARNING:
+			fprintf(stdout, "warning: [ffmpeg_muxer] %s\n", out);
+			fflush(stdout);
+			break;
+
+		case AV_LOG_ERROR:
+			fprintf(stderr, "error: [ffmpeg_muxer] %s\n", out);
+			fflush(stderr);
+	}
+
+	dstr_free(&log_message);
+	UNUSED_PARAMETER(param);
+}
+
+
+
 static bool init_params(int *argc, char ***argv, struct main_params *params,
 			struct audio_params **p_audio)
 {
@@ -257,7 +301,12 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 
 	*p_audio = audio;
 
+	get_opt_str(argc, argv, &global_stream_key, "stream key");
+	printf("\nMaya's log: stream_key is %s\n", global_stream_key);
+
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
+
+	av_log_set_callback(ffmpeg_log_callback);
 
 	return true;
 }
