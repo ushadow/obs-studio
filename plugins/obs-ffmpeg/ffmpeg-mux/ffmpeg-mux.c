@@ -32,6 +32,10 @@
 
 #include <libavformat/avformat.h>
 
+#define ANSI_COLOR_YELLOW "\x1b[0;93m"
+#define ANSI_COLOR_MAGENTA "\x1b[0;95m"
+#define ANSI_COLOR_RESET "\x1b[0m"
+
 #if LIBAVCODEC_VERSION_MAJOR >= 58
 #define CODEC_FLAG_GLOBAL_H AV_CODEC_FLAG_GLOBAL_HEADER
 #else
@@ -40,7 +44,7 @@
 
 /* ------------------------------------------------------------------------- */
 
-static char* global_stream_key;
+static char *global_stream_key = "";
 
 struct resize_buf {
 	uint8_t *buf;
@@ -208,7 +212,7 @@ static bool get_audio_params(struct audio_params *audio, int *argc,
 static void ffmpeg_log_callback(void *param, int level, const char *format,
 				va_list args)
 {
-	const char* stream_key;
+	const char *stream_key;
 	struct dstr log_message = {0};
 
 	stream_key = global_stream_key;
@@ -217,32 +221,32 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 	vsnprintf(out, sizeof(out), format, args);
 	dstr_copy(&log_message, out);
 
-	if (dstr_find(&log_message, stream_key))
+	if ((strcmp(stream_key, "") != 0) && (dstr_find(&log_message, stream_key)))
 		dstr_replace(&log_message, stream_key, "{stream_key}");
 
 	strcpy(out, log_message.array);
 
 	switch (level) {
-		case AV_LOG_INFO:
-			fprintf(stdout, "info: [ffmpeg_muxer] %s\n", out);
-			fflush(stdout);
-			break;
+	case AV_LOG_INFO:
+		fprintf(stdout, "info: [ffmpeg_muxer] %s", out);
+		fflush(stdout);
+		break;
 
-		case AV_LOG_WARNING:
-			fprintf(stdout, "warning: [ffmpeg_muxer] %s\n", out);
-			fflush(stdout);
-			break;
+	case AV_LOG_WARNING:
+		fprintf(stdout, "warning: %s[ffmpeg_muxer]%s %s%s%s",
+			ANSI_COLOR_MAGENTA, ANSI_COLOR_RESET, ANSI_COLOR_YELLOW,
+			out, ANSI_COLOR_RESET);
+		fflush(stdout);
+		break;
 
-		case AV_LOG_ERROR:
-			fprintf(stderr, "error: [ffmpeg_muxer] %s\n", out);
-			fflush(stderr);
+	case AV_LOG_ERROR:
+		fprintf(stderr, "error: [ffmpeg_muxer] %s", out);
+		fflush(stderr);
 	}
 
 	dstr_free(&log_message);
 	UNUSED_PARAMETER(param);
 }
-
-
 
 static bool init_params(int *argc, char ***argv, struct main_params *params,
 			struct audio_params **p_audio)
@@ -303,10 +307,11 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 
 	get_opt_str(argc, argv, &global_stream_key, "stream key");
 	printf("\nMaya's log: stream_key is %s\n", global_stream_key);
+	if (strcmp(global_stream_key, "") != 0)
+		printf("Maya's log: setting callback\n");
+		av_log_set_callback(ffmpeg_log_callback);
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
-
-	av_log_set_callback(ffmpeg_log_callback);
 
 	return true;
 }

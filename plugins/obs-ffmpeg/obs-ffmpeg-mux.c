@@ -131,9 +131,8 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 	return stream;
 }
 
-
 static void ffmpeg_hls_log_callback(void *param, int level, const char *format,
-				va_list args)
+				    va_list args)
 {
 	if (level <= AV_LOG_WARNING)
 		blogva(LOG_WARNING, format, args);
@@ -154,7 +153,6 @@ static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 	UNUSED_PARAMETER(settings);
 	return stream;
 }
-
 
 #ifdef _WIN32
 #define FFMPEG_MUX "obs-ffmpeg-mux.exe"
@@ -244,9 +242,9 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 
 static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
 {
-	obs_data_t* service;
+	obs_data_t *service;
 	const char *path_str;
-	const char* stream_key;
+	const char *stream_key;
 
 	service = obs_output_get_service(stream->output);
 	if (!service)
