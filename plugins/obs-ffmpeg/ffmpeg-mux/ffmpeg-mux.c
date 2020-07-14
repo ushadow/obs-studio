@@ -238,18 +238,16 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 		break;
 
 	case AV_LOG_WARNING:
-		fprintf(stdout, "%swarning: %s[ffmpeg_muxer]%s %s%s%s%s",
+		fprintf(stdout, "%swarning: %s[ffmpeg_muxer]%s %s%s%s",
 			ANSI_BACKGRD_BLK, ANSI_COLOR_MAGENTA, ANSI_COLOR_RESET,
-			ANSI_COLOR_YELLOW, out, ANSI_COLOR_RESET,
-			ANSI_BACKGRD_RESET);
+			ANSI_COLOR_YELLOW, out, ANSI_COLOR_RESET);
 		fflush(stdout);
 		break;
 
 	case AV_LOG_ERROR:
-		fprintf(stderr, "%serror: %s[ffmpeg_muxer]%s %s%s%s%s",
+		fprintf(stderr, "%serror: %s[ffmpeg_muxer]%s %s%s%s",
 			ANSI_BACKGRD_BLK, ANSI_COLOR_BLK, ANSI_COLOR_RESET,
-			ANSI_COLOR_RED, out, ANSI_COLOR_RESET,
-			ANSI_BACKGRD_RESET);
+			ANSI_COLOR_RED, out, ANSI_COLOR_RESET);
 		fflush(stderr);
 	}
 
@@ -537,7 +535,7 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 		ret = avio_open(&ffm->output->pb, ffm->params.file,
 				AVIO_FLAG_WRITE);
 		if (ret < 0) {
-			fprintf(stderr, "Couldn't open '%s', %s",
+			fprintf(stderr, "Couldn't open '%s', %s\n",
 				ffm->params.file, av_err2str(ret));
 			return FFM_ERROR;
 		}
