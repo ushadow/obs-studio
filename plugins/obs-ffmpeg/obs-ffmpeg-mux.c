@@ -217,19 +217,23 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 	av_dict_free(&dict);
 }
 
-static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
+const char *get_stream_key(struct ffmpeg_muxer *stream)
 {
-	obs_data_t *service;
-	const char *path_str;
+	obs_service_t *service;
 	const char *stream_key;
 
 	service = obs_output_get_service(stream->output);
-	if (!service) {
-		dstr_catf(cmd, "\"%s\" ", "");
-		return;
-	}
-	path_str = obs_service_get_url(service);
+	if (!service)
+		return NULL;
 	stream_key = obs_service_get_key(service);
+	return stream_key;
+}
+
+static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
+{
+	const char *stream_key;
+
+	stream_key = get_stream_key(stream);
 
 	dstr_catf(cmd, "\"%s\" ", stream_key ? stream_key : "");
 }
@@ -443,10 +447,18 @@ static bool ffmpeg_hls_mux_start(void *data)
 	return true;
 }
 
+struct dstr *replace_stream_key(struct dstr *tmp, char *original,
+				const char *to_replace, const char *replace)
+{
+	dstr_init_copy(tmp, original);
+	dstr_replace(tmp, to_replace, replace);
+}
+
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	obs_service_t *service;
 	const char *stream_key;
+	const char *temp;
 	int ret = -1;
 
 	if (active(stream)) {
@@ -456,12 +468,16 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->active, false);
 		os_atomic_set_bool(&stream->sent_headers, false);
 
-		service = obs_output_get_service(stream->output);
-		if (!service)
-			return false;
-		stream_key = obs_service_get_key(service);
-		dstr_replace(&stream->path, stream_key, "{stream_key}");
-		info("Output of file '%s' stopped", stream->path.array);
+		stream_key = get_stream_key(stream);
+		if (stream_key) {
+			struct dstr tmp = {0};
+			replace_stream_key(&tmp, stream->path.array, stream_key,
+					   "{stream_key}");
+			info("Output of file '%s' stopped", tmp.array);
+			dstr_free(&tmp);
+		} else {
+			info("Output of file '%s' stopped", stream->path.array);
+		}
 	}
 
 	if (code) {
@@ -897,10 +913,23 @@ static void *replay_buffer_mux_thread(void *data)
 		goto error;
 	}
 
+	char *stream_key;
+	stream_key = get_stream_key(stream);
+
 	if (!send_headers(stream)) {
-		warn("Could not write headers for file '%s'",
-		     stream->path.array);
-		goto error;
+		if (stream_key) {
+			struct dstr tmp = {0};
+			replace_stream_key(&tmp, stream->path.array, stream_key,
+					   "{stream_key}");
+			warn("Could not write headers for file '%s'",
+			     tmp.array);
+			dstr_free(&tmp);
+			goto error;
+		} else {
+			warn("Could not write headers for file '%s'",
+			     stream->path.array);
+			goto error;
+		}
 	}
 
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
@@ -909,7 +938,14 @@ static void *replay_buffer_mux_thread(void *data)
 		obs_encoder_packet_release(pkt);
 	}
 
-	info("Wrote replay buffer to '%s'", stream->path.array);
+	if (stream_key) {
+		struct dstr tmp = {0};
+		replace_stream_key(&tmp, stream->path.array, stream_key,
+				   "{stream_key}");
+		info("Wrote replay buffer to '%s'", tmp.array);
+		dstr_free(&tmp);
+	} else
+		info("Wrote replay buffer to '%s'", stream->path.array);
 
 error:
 	os_process_pipe_destroy(stream->pipe);
