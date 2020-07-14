@@ -224,8 +224,10 @@ static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
 	const char *stream_key;
 
 	service = obs_output_get_service(stream->output);
-	if (!service)
+	if (!service) {
+		dstr_catf(cmd, "\"%s\" ", "");
 		return;
+	}
 	path_str = obs_service_get_url(service);
 	stream_key = obs_service_get_key(service);
 
