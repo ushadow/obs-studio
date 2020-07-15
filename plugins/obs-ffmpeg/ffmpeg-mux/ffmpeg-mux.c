@@ -309,7 +309,6 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 		dstr_replace(&tmp, global_stream_key, "{stream_key}");
 		strcpy(params->file, tmp.array);
 		dstr_free(&tmp);
-		printf("Maya's log: setting callback log\n");
 		av_log_set_callback(ffmpeg_log_callback);
 	}
 
