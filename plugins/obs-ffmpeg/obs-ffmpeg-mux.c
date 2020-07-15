@@ -520,7 +520,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
     os_atomic_set_bool(&stream->capturing, false);
 }
 
-static bool write_packet(struct ffmpeg_muxer *stream,
+static bool (struct ffmpeg_muxer *stream,
              struct encoder_packet *packet)
 {
     bool is_video = packet->type == OBS_ENCODER_VIDEO;
@@ -560,6 +560,7 @@ static bool send_audio_headers(struct ffmpeg_muxer *stream,
         .type = OBS_ENCODER_AUDIO, .timebase_den = 1, .track_idx = idx};
 
     obs_encoder_get_extra_data(aencoder, &packet.data, &packet.size);
+	printf("Maya's log: in send_audio_headers\n");
     return write_packet(stream, &packet);
 }
 
@@ -571,6 +572,7 @@ static bool send_video_headers(struct ffmpeg_muxer *stream)
                     .timebase_den = 1};
 
     obs_encoder_get_extra_data(vencoder, &packet.data, &packet.size);
+	printf("Maya's log: in send_video_headers\n");
     return write_packet(stream, &packet);
 }
 
@@ -622,6 +624,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
         }
     }
 
+	printf("Maya's log: in ffmpeg_mux_data\n");
     write_packet(stream, packet);
 }
 
@@ -913,6 +916,7 @@ static void *replay_buffer_mux_thread(void *data)
 
     for (size_t i = 0; i < stream->mux_packets.num; i++) {
         struct encoder_packet *pkt = &stream->mux_packets.array[i];
+		printf("Maya's log: In write_packet forloop\n");
         write_packet(stream, pkt);
         obs_encoder_packet_release(pkt);
     }
