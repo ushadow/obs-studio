@@ -45,6 +45,7 @@ struct ffmpeg_muxer {
 	int64_t stop_ts;
 	uint64_t total_bytes;
 	struct dstr path;
+	const char *printable;
 	struct dstr muxer_settings;
 	bool sent_headers;
 	volatile bool active;
@@ -442,22 +443,16 @@ static bool ffmpeg_hls_mux_start(void *data)
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
 
-	info("Writing to path '%s'...", path_str);
+	// CHECK HERE IF THIS GOES OUT OF SCOPE
+	stream->printable = path_str;
+	info("Writing to path '%s'...", stream->printable);
 
 	return true;
-}
-
-struct dstr *replace_stream_key(struct dstr *tmp, char *original,
-				const char *to_replace, const char *replace)
-{
-	dstr_init_copy(tmp, original);
-	dstr_replace(tmp, to_replace, replace);
 }
 
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	obs_service_t *service;
-	const char *stream_key;
 	const char *temp;
 	int ret = -1;
 
@@ -468,16 +463,9 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->active, false);
 		os_atomic_set_bool(&stream->sent_headers, false);
 
-		stream_key = get_stream_key(stream);
-		if (stream_key) {
-			struct dstr tmp = {0};
-			replace_stream_key(&tmp, stream->path.array, stream_key,
-					   "{stream_key}");
-			info("Output of file '%s' stopped", tmp.array);
-			dstr_free(&tmp);
-		} else {
-			info("Output of file '%s' stopped", stream->path.array);
-		}
+		info("Output of file '%s' stopped",
+		     stream->printable ? stream->printable
+				       : stream->path.array);
 	}
 
 	if (code) {
@@ -913,23 +901,11 @@ static void *replay_buffer_mux_thread(void *data)
 		goto error;
 	}
 
-	char *stream_key;
-	stream_key = get_stream_key(stream);
-
 	if (!send_headers(stream)) {
-		if (stream_key) {
-			struct dstr tmp = {0};
-			replace_stream_key(&tmp, stream->path.array, stream_key,
-					   "{stream_key}");
-			warn("Could not write headers for file '%s'",
-			     tmp.array);
-			dstr_free(&tmp);
-			goto error;
-		} else {
-			warn("Could not write headers for file '%s'",
-			     stream->path.array);
-			goto error;
-		}
+		warn("Could not write headers for file '%s'",
+		     stream->printable ? stream->printable
+				       : stream->path.array);
+		goto error;
 	}
 
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
@@ -938,14 +914,8 @@ static void *replay_buffer_mux_thread(void *data)
 		obs_encoder_packet_release(pkt);
 	}
 
-	if (stream_key) {
-		struct dstr tmp = {0};
-		replace_stream_key(&tmp, stream->path.array, stream_key,
-				   "{stream_key}");
-		info("Wrote replay buffer to '%s'", tmp.array);
-		dstr_free(&tmp);
-	} else
-		info("Wrote replay buffer to '%s'", stream->path.array);
+	info("Wrote replay buffer to '%s'",
+	     stream->printable ? stream->printable : stream->path.array);
 
 error:
 	os_process_pipe_destroy(stream->pipe);
