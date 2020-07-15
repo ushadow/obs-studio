@@ -80,6 +80,7 @@ static inline void resize_buf_free(struct resize_buf *rb)
 
 struct main_params {
 	char *file;
+	char *print_file;
 	int has_video;
 	int tracks;
 	char *vcodec;
@@ -213,42 +214,34 @@ static bool get_audio_params(struct audio_params *audio, int *argc,
 static void ffmpeg_log_callback(void *param, int level, const char *format,
 				va_list args)
 {
-	const char *stream_key;
-	char out[4096];
+	char out_buffer[4096];
+	struct dstr out = {0};
 
-	struct dstr log_message = {0};
-	stream_key = global_stream_key;
-
-	vsnprintf(out, sizeof(out), format, args);
-	dstr_copy(&log_message, out);
-
-	if ((strcmp(stream_key, "") != 0) &&
-	    (dstr_find(&log_message, stream_key)))
-		dstr_replace(&log_message, stream_key, "{stream_key}");
-
-	strcpy(out, log_message.array);
+	vsnprintf(out_buffer, sizeof(out_buffer), format, args);
+	dstr_copy(&out, out_buffer);
+	dstr_replace(&out, global_stream_key, "{stream_key}");
 
 	switch (level) {
 	case AV_LOG_INFO:
-		fprintf(stdout, "info: [ffmpeg_muxer] %s", out);
+		fprintf(stdout, "info: [ffmpeg_muxer] %s", out.array);
 		fflush(stdout);
 		break;
 
 	case AV_LOG_WARNING:
 		fprintf(stdout, "warning: %s[ffmpeg_muxer]%s %s%s%s",
 			ANSI_COLOR_MAGENTA, ANSI_COLOR_RESET, ANSI_COLOR_YELLOW,
-			out, ANSI_COLOR_RESET);
+			out.array, ANSI_COLOR_RESET);
 		fflush(stdout);
 		break;
 
 	case AV_LOG_ERROR:
 		fprintf(stderr, "error: %s[ffmpeg_muxer]%s %s%s%s",
-			ANSI_COLOR_BLK, ANSI_COLOR_RESET, ANSI_COLOR_RED, out,
-			ANSI_COLOR_RESET);
+			ANSI_COLOR_BLK, ANSI_COLOR_RESET, ANSI_COLOR_RED,
+			out.array, ANSI_COLOR_RESET);
 		fflush(stderr);
 	}
 
-	dstr_free(&log_message);
+	dstr_free(&out);
 	UNUSED_PARAMETER(param);
 }
 
@@ -310,8 +303,15 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	*p_audio = audio;
 
 	get_opt_str(argc, argv, &global_stream_key, "stream key");
-	if (strcmp(global_stream_key, "") != 0)
+	if (strcmp(global_stream_key, "") != 0) {
+		struct dstr tmp = {0};
+		dstr_copy(&tmp, params->file);
+		dstr_replace(&tmp, global_stream_key, "{stream_key}");
+		strcpy(params->file, tmp.array);
+		dstr_free(&tmp);
+		printf("Maya's log: setting callback log\n");
 		av_log_set_callback(ffmpeg_log_callback);
+	}
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
 
@@ -528,7 +528,9 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 				AVIO_FLAG_WRITE);
 		if (ret < 0) {
 			fprintf(stderr, "Couldn't open '%s', %s\n",
-				ffm->params.file, av_err2str(ret));
+				ffm->params.print_file ? ffm->params.print_file
+						       : ffm->params.file,
+				av_err2str(ret));
 			return FFM_ERROR;
 		}
 	}
@@ -559,7 +561,9 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 
 	ret = avformat_write_header(ffm->output, &dict);
 	if (ret < 0) {
-		fprintf(stderr, "Error opening '%s': %s", ffm->params.file,
+		fprintf(stderr, "Error opening '%s': %s",
+			ffm->params.print_file ? ffm->params.print_file
+					       : ffm->params.file,
 			av_err2str(ret));
 
 		av_dict_free(&dict);
@@ -601,7 +605,8 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
-			ffm->params.file);
+			ffm->params.print_file ? ffm->params.print_file
+					       : ffm->params.file);
 		return FFM_ERROR;
 	}
 	printf("info: Output format name and long_name: %s, %s\n",
