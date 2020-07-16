@@ -619,7 +619,6 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 			return;
 		}
 	}
-
 	write_packet(stream, packet);
 }
 

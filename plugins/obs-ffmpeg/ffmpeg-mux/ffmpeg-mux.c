@@ -80,7 +80,7 @@ static inline void resize_buf_free(struct resize_buf *rb)
 struct main_params {
 	char *file;
 	/* printable_file is file with any stream key information removed */
-	char *printable_file;
+	char printable_file[4096];
 	int has_video;
 	int tracks;
 	char *vcodec;
@@ -307,7 +307,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 		struct dstr tmp = {0};
 		dstr_copy(&tmp, params->file);
 		dstr_replace(&tmp, global_stream_key, "{stream_key}");
-		strcpy(params->file, tmp.array);
+		strcpy(params->printable_file, tmp.array);
 		dstr_free(&tmp);
 		av_log_set_callback(ffmpeg_log_callback);
 	}
