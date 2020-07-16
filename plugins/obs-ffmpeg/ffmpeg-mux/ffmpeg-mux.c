@@ -27,7 +27,6 @@
 #include <stdlib.h>
 #include "ffmpeg-mux.h"
 
-#include <obs-module.h>
 #include <util/dstr.h>
 #include <libavformat/avformat.h>
 
@@ -80,7 +79,7 @@ static inline void resize_buf_free(struct resize_buf *rb)
 
 struct main_params {
 	char *file;
-	char *print_file;
+	char *printable_file;
 	int has_video;
 	int tracks;
 	char *vcodec;

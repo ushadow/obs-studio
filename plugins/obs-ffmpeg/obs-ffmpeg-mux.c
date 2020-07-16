@@ -45,6 +45,7 @@ struct ffmpeg_muxer {
 	int64_t stop_ts;
 	uint64_t total_bytes;
 	struct dstr path;
+	/* printable_path is path with any stream key information removed */
 	const char *printable_path;
 	struct dstr muxer_settings;
 	bool sent_headers;
@@ -451,8 +452,6 @@ static bool ffmpeg_hls_mux_start(void *data)
 
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
-	obs_service_t *service;
-	const char *temp;
 	int ret = -1;
 
 	if (active(stream)) {
