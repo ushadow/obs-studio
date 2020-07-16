@@ -527,8 +527,9 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 				AVIO_FLAG_WRITE);
 		if (ret < 0) {
 			fprintf(stderr, "Couldn't open '%s', %s\n",
-				ffm->params.printable_file ? ffm->params.printable_file
-						       : ffm->params.file,
+				ffm->params.printable_file
+					? ffm->params.printable_file
+					: ffm->params.file,
 				av_err2str(ret));
 			return FFM_ERROR;
 		}
@@ -562,7 +563,7 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 	if (ret < 0) {
 		fprintf(stderr, "Error opening '%s': %s",
 			ffm->params.printable_file ? ffm->params.printable_file
-					       : ffm->params.file,
+						   : ffm->params.file,
 			av_err2str(ret));
 
 		av_dict_free(&dict);
@@ -605,7 +606,7 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
 			ffm->params.printable_file ? ffm->params.printable_file
-					       : ffm->params.file);
+						   : ffm->params.file);
 		return FFM_ERROR;
 	}
 	printf("info: Output format name and long_name: %s, %s\n",
