@@ -67,6 +67,11 @@ struct ffmpeg_muxer {
 	DARRAY(struct encoder_packet) mux_packets;
 	pthread_t mux_thread;
 	bool mux_thread_joinable;
+
+	bool connecting;
+	pthread_t start_thread;
+	pthread_mutex_t write_mutex;
+
 	volatile bool muxing;
 
 	bool is_network;
@@ -114,13 +119,16 @@ static void ffmpeg_mux_destroy(void *data)
 	replay_buffer_clear(stream);
 	if (stream->mux_thread_joinable)
 		pthread_join(stream->mux_thread, NULL);
+	pthread_mutex_lock(&output->write_mutex);
 	da_free(stream->mux_packets);
+	pthread_mutex_unlock(&output->write_mutex);
 
 	os_process_pipe_destroy(stream->pipe);
 	dstr_free(&stream->path);
 	dstr_free(&stream->printable_path);
 	dstr_free(&stream->stream_key);
 	dstr_free(&stream->muxer_settings);
+	pthread_mutex_destroy(&output->write_mutex);
 	bfree(stream);
 }
 
@@ -438,6 +446,8 @@ static bool ffmpeg_hls_mux_start(void *data)
 	dstr_copy(&stream->printable_path, path_str);
 	info("Writing to path '%s'...", stream->printable_path.array);
 
+
+
 	return true;
 }
 
@@ -742,7 +752,11 @@ static void *replay_buffer_create(obs_data_t *settings, obs_output_t *output)
 {
 	UNUSED_PARAMETER(settings);
 	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
+	pthread_mutex_init_value(&data->write_mutex);
 	stream->output = output;
+
+	if (pthread_mutex_init(&stream->write_mutex, NULL) != 0)
+		goto fail;
 
 	stream->hotkey =
 		obs_hotkey_register_output(output, "ReplayBuffer.Save",
@@ -755,6 +769,11 @@ static void *replay_buffer_create(obs_data_t *settings, obs_output_t *output)
 			 get_last_replay, stream);
 
 	return stream;
+
+fail:
+	pthread_mutex_destroy(&stream->write_mutex);
+	bfree(data);
+	return NULL;
 }
 
 static void replay_buffer_destroy(void *data)
@@ -898,11 +917,13 @@ static void *replay_buffer_mux_thread(void *data)
 		goto error;
 	}
 
+	pthread_mutex_lock(&stream->write_mutex);
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
 		struct encoder_packet *pkt = &stream->mux_packets.array[i];
 		write_packet(stream, pkt);
 		obs_encoder_packet_release(pkt);
 	}
+	pthread_mutex_unlock(&output->write_mutex);
 
 	info("Wrote replay buffer to '%s'",
 	     dstr_is_empty(&stream->printable_path)
