@@ -79,6 +79,7 @@ static inline void resize_buf_free(struct resize_buf *rb)
 
 struct main_params {
 	char *file;
+	/* printable_file is file with any stream key information removed */
 	char *printable_file;
 	int has_video;
 	int tracks;
@@ -526,7 +527,7 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 				AVIO_FLAG_WRITE);
 		if (ret < 0) {
 			fprintf(stderr, "Couldn't open '%s', %s\n",
-				ffm->params.print_file ? ffm->params.print_file
+				ffm->params.printable_file ? ffm->params.printable_file
 						       : ffm->params.file,
 				av_err2str(ret));
 			return FFM_ERROR;
@@ -560,7 +561,7 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 	ret = avformat_write_header(ffm->output, &dict);
 	if (ret < 0) {
 		fprintf(stderr, "Error opening '%s': %s",
-			ffm->params.print_file ? ffm->params.print_file
+			ffm->params.printable_file ? ffm->params.printable_file
 					       : ffm->params.file,
 			av_err2str(ret));
 
@@ -603,7 +604,7 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
-			ffm->params.print_file ? ffm->params.print_file
+			ffm->params.printable_file ? ffm->params.printable_file
 					       : ffm->params.file);
 		return FFM_ERROR;
 	}
