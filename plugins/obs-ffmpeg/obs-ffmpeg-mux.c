@@ -121,6 +121,8 @@ static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
 
 static void ffmpeg_mux_deactivate(struct ffmpeg_muxer *stream)
 {
+	struct encoder_packet packet;
+
 	if (stream->write_thread_active) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
@@ -130,8 +132,11 @@ static void ffmpeg_mux_deactivate(struct ffmpeg_muxer *stream)
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	for (size_t i = 0; i < stream->mux_packets.num; i++)
-		obs_encoder_packet_release(&stream->mux_packets.array[i]);
+	while (stream->mux_packets.num > 0) {
+		packet = stream->mux_packets.array[0];
+		da_erase(stream->mux_packets, 0);
+		obs_encoder_packet_release(&packet);
+	}
 	da_free(stream->mux_packets);
 
 	pthread_mutex_unlock(&stream->write_mutex);
@@ -457,7 +462,6 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 	pthread_mutex_unlock(&stream->write_mutex);
 	os_sem_post(stream->write_sem);
 
-	stream->total_bytes += packet->size;
 	return true;
 }
 
@@ -519,6 +523,7 @@ static void *process_packet(struct ffmpeg_muxer *stream)
 
 static void *write_thread(void *data)
 {
+	printf("\nWrite thread: Enters write_thread fxn\n");
 	struct ffmpeg_muxer *stream = data;
 
 	while (os_sem_wait(stream->write_sem) == 0) {
@@ -548,18 +553,20 @@ static void *write_thread(void *data)
 
 static bool try_connect(struct ffmpeg_muxer *stream)
 {
+	printf("Start thread: enters try_connect\n");
 	int ret;
 	stream->active = true;
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
 
+	printf("Start thread: right before creating write_thread\n");
 	ret = pthread_create(&stream->write_thread, NULL, write_thread, stream);
 	if (ret != 0) {
 		warn("ffmpeg_hls_mux_start: failed to create write thread.");
 		ffmpeg_hls_mux_full_stop(stream);
 		return false;
 	}
-
+	printf("Sart thread: about to begin data capture\n");
 	obs_output_begin_data_capture(stream->output, 0);
 	stream->write_thread_active = true;
 	return true;
@@ -567,12 +574,15 @@ static bool try_connect(struct ffmpeg_muxer *stream)
 
 static void *start_thread(void *data)
 {
+	printf("\nStart thread: enters start_thread\n");
 	struct ffmpeg_muxer *stream = data;
-
-	if (!try_connect(stream))
+	printf("Start thread log: right before try_connect\n");
+	if (!try_connect(stream)) {
+		printf("Start thread: try_connect returns error\n");
 		obs_output_signal_stop(stream->output,
 				       OBS_OUTPUT_CONNECT_FAILED);
-
+	}
+	printf("Start thread: after try connect if\n");
 	stream->connecting = false;
 	return NULL;
 }
@@ -698,7 +708,9 @@ static bool ffmpeg_hls_mux_start(void *data)
 	dstr_copy(&stream->printable_path, path_str);
 	info("Writing to path '%s'...", stream->printable_path.array);
 
+	printf("\nCaller: in hls_mux_start about to create start_thread\n");
 	ret = pthread_create(stream->start_thread, NULL, start_thread, stream);
+	printf("Caller: just created start_thread\n");
 	return (stream->connecting = (ret == 0));
 }
 
