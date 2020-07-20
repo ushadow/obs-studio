@@ -80,7 +80,7 @@ static inline void resize_buf_free(struct resize_buf *rb)
 struct main_params {
 	char *file;
 	/* printable_file is file with any stream key information removed */
-	char printable_file[4096];
+	struct dstr printable_file;
 	int has_video;
 	int tracks;
 	char *vcodec;
@@ -164,6 +164,8 @@ static void ffmpeg_mux_free(struct ffmpeg_mux *ffm)
 	if (ffm->audio) {
 		free(ffm->audio);
 	}
+
+	dstr_free(&ffm->params.printable_file);
 
 	memset(ffm, 0, sizeof(*ffm));
 }
@@ -307,7 +309,7 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 		struct dstr tmp = {0};
 		dstr_copy(&tmp, params->file);
 		dstr_replace(&tmp, global_stream_key, "{stream_key}");
-		strcpy(params->printable_file, tmp.array);
+		dstr_copy(&params->printable_file, tmp.array);
 		dstr_free(&tmp);
 		av_log_set_callback(ffmpeg_log_callback);
 	}
@@ -527,8 +529,8 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 				AVIO_FLAG_WRITE);
 		if (ret < 0) {
 			fprintf(stderr, "Couldn't open '%s', %s\n",
-				ffm->params.printable_file
-					? ffm->params.printable_file
+				ffm->params.printable_file.len
+					? ffm->params.printable_file.array
 					: ffm->params.file,
 				av_err2str(ret));
 			return FFM_ERROR;
@@ -562,8 +564,9 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 	ret = avformat_write_header(ffm->output, &dict);
 	if (ret < 0) {
 		fprintf(stderr, "Error opening '%s': %s",
-			ffm->params.printable_file ? ffm->params.printable_file
-						   : ffm->params.file,
+			ffm->params.printable_file.len
+				? ffm->params.printable_file.array
+				: ffm->params.file,
 			av_err2str(ret));
 
 		av_dict_free(&dict);
@@ -605,8 +608,9 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
-			ffm->params.printable_file ? ffm->params.printable_file
-						   : ffm->params.file);
+			ffm->params.printable_file.len
+				? ffm->params.printable_file.array
+				: ffm->params.file);
 		return FFM_ERROR;
 	}
 	printf("info: Output format name and long_name: %s, %s\n",
