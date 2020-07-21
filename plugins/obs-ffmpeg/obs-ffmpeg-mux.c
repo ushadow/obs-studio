@@ -437,10 +437,11 @@ static void *process_packet(struct ffmpeg_muxer *stream)
 static void *write_thread(void *data)
 {
 	printf("\nWrite thread: Enters write_thread fxn\n");
-	stream->write_thread_active = true;
 	struct ffmpeg_muxer *stream = data;
+	stream->write_thread_active = true;
 
 	while (os_sem_wait(stream->write_sem) == 0) {
+		printf("\nWrite thread: in while loop\n");
 		/* check to see if shutting down */
 		if (os_event_try(stream->stop_event) == 0)
 			break;
