@@ -121,13 +121,13 @@ static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
 static void ffmpeg_mux_deactivate(struct ffmpeg_muxer *stream)
 {
 	struct encoder_packet packet;
-
+	printf("\nFFmpeg_deactivate: in ffmpeg_mux_deactivate\n");
 	if (stream->write_thread_active) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
 		stream->write_thread_active = false;
 	}
-
+	printf("FFmpeg_deactivate: about to lock mutex\n");
 	pthread_mutex_lock(&stream->write_mutex);
 
 	if (stream->mux_packets.num) {
@@ -413,24 +413,35 @@ static bool write_packet(struct ffmpeg_muxer *stream,
 
 static void *process_packet(struct ffmpeg_muxer *stream)
 {
+	printf("\nProcess packet: 1. entered\n");
 	struct encoder_packet packet;
 	bool new_packet = false;
 	int ret;
+	int remaining = 0; 
 
+	printf("Process packet: 2. before locking\n");
 	pthread_mutex_lock(&stream->write_mutex);
-	if (stream->mux_packets.num) {
+	remaining = stream->mux_packets.num;
+	printf("Process packet: 3. NUMBER OF PACKETS TO WRITE: %d\n", remaining);
+	if (remaining) {
 		packet = stream->mux_packets.array[0];
 		da_erase(stream->mux_packets, 0);
 		new_packet = true;
 	}
+	printf("Process packet: 4. packet popped off array\n");
 	pthread_mutex_unlock(&stream->write_mutex);
 
 	if (!new_packet)
 		return 0;
 
+	printf("Process packet: 5. before write_packet of packet\n");
 	ret = write_packet(stream, &packet);
-	obs_encoder_packet_release(&packet);
-
+	printf("Process packet: 6. before releasing packet\n");
+	if (remaining != 1) {
+		//printf("Process packet: 6.5 releasing packet\n");
+		obs_encoder_packet_release(&packet);
+	}
+	printf("Process packet: 7. after releasing packet\n");
 	return (ret ? 0 : NULL);
 }
 
@@ -440,13 +451,14 @@ static void *write_thread(void *data)
 	struct ffmpeg_muxer *stream = data;
 	stream->write_thread_active = true;
 
+	printf("Write thread: waiting to enter whileloop\n");
 	while (os_sem_wait(stream->write_sem) == 0) {
-		printf("\nWrite thread: in while loop\n");
+		printf("Write thread: in while loop\n");
 		/* check to see if shutting down */
 		if (os_event_try(stream->stop_event) == 0)
 			break;
 
-		printf("\nWrite thread: process packet\n");
+		printf("Write thread: process packet\n");
 		int ret = process_packet(stream);
 		if (ret != 0) {
 			int code = OBS_OUTPUT_ERROR;
@@ -455,8 +467,10 @@ static void *write_thread(void *data)
 			if (ret == -ENOSPC)
 				code = OBS_OUTPUT_NO_SPACE;
 
+			printf("\nWrite thread: stopping output signal\n");
 			obs_output_signal_stop(stream->output, code);
 			ffmpeg_mux_deactivate(stream);
+			printf("\nWrite thread: right before breaking out of while loop\n");
 			break;
 		}
 	}
@@ -690,6 +704,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 static bool write_packet(struct ffmpeg_muxer *stream,
 			 struct encoder_packet *packet)
 {
+	printf("\nWrite_packet: entered\n");
 	bool is_video = packet->type == OBS_ENCODER_VIDEO;
 	size_t ret;
 
@@ -701,6 +716,7 @@ static bool write_packet(struct ffmpeg_muxer *stream,
 							: FFM_PACKET_AUDIO,
 				       .keyframe = packet->keyframe};
 
+	printf("Write_packet: about to write info to pipe\n");
 	ret = os_process_pipe_write(stream->pipe, (const uint8_t *)&info,
 				    sizeof(info));
 	if (ret != sizeof(info)) {
@@ -709,13 +725,14 @@ static bool write_packet(struct ffmpeg_muxer *stream,
 		return false;
 	}
 
+	printf("Write_packet: about to write data to pipe\n");
 	ret = os_process_pipe_write(stream->pipe, packet->data, packet->size);
 	if (ret != packet->size) {
 		warn("os_process_pipe_write for packet data failed");
 		signal_failure(stream);
 		return false;
 	}
-
+	printf("Write_packet: after writing to pipe\n");
 	stream->total_bytes += packet->size;
 	return true;
 }
