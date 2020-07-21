@@ -386,30 +386,6 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 	obs_data_release(settings);
 }
 
-static int deactivate(struct ffmpeg_muxer *stream, int code)
-{
-	int ret = -1;
-
-	if (active(stream)) {
-		ret = os_process_pipe_destroy(stream->pipe);
-		stream->pipe = NULL;
-
-		os_atomic_set_bool(&stream->active, false);
-		os_atomic_set_bool(&stream->sent_headers, false);
-
-		info("Output of file '%s' stopped", stream->path.array);
-	}
-
-	if (code) {
-		obs_output_signal_stop(stream->output, code);
-	} else if (stopping(stream)) {
-		obs_output_end_data_capture(stream->output);
-	}
-
-	os_atomic_set_bool(&stream->stopping, false);
-	return ret;
-}
-
 static void ffmpeg_hls_mux_full_stop(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
@@ -418,37 +394,6 @@ static void ffmpeg_hls_mux_full_stop(void *data)
 		obs_output_end_data_capture(stream->output);
 		ffmpeg_mux_deactivate(stream);
 	}
-}
-
-static void signal_failure(struct ffmpeg_muxer *stream)
-{
-	char error[1024];
-	int ret;
-	int code;
-
-	size_t len;
-
-	len = os_process_pipe_read_err(stream->pipe, (uint8_t *)error,
-				       sizeof(error) - 1);
-
-	if (len > 0) {
-		error[len] = 0;
-		warn("ffmpeg-mux: %s", error);
-		obs_output_set_last_error(stream->output, error);
-	}
-
-	ret = deactivate(stream, 0);
-
-	switch (ret) {
-	case FFM_UNSUPPORTED:
-		code = OBS_OUTPUT_UNSUPPORTED;
-		break;
-	default:
-		code = OBS_OUTPUT_ERROR;
-	}
-
-	obs_output_signal_stop(stream->output, code);
-	os_atomic_set_bool(&stream->capturing, false);
 }
 
 /* push back packet onto to dynamic array using locking */
@@ -464,37 +409,7 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 }
 
 static bool write_packet(struct ffmpeg_muxer *stream,
-			 struct encoder_packet *packet)
-{
-	bool is_video = packet->type == OBS_ENCODER_VIDEO;
-	size_t ret;
-
-	struct ffm_packet_info info = {.pts = packet->pts,
-				       .dts = packet->dts,
-				       .size = (uint32_t)packet->size,
-				       .index = (int)packet->track_idx,
-				       .type = is_video ? FFM_PACKET_VIDEO
-							: FFM_PACKET_AUDIO,
-				       .keyframe = packet->keyframe};
-
-	ret = os_process_pipe_write(stream->pipe, (const uint8_t *)&info,
-				    sizeof(info));
-	if (ret != sizeof(info)) {
-		warn("os_process_pipe_write for info structure failed");
-		signal_failure(stream);
-		return false;
-	}
-
-	ret = os_process_pipe_write(stream->pipe, packet->data, packet->size);
-	if (ret != packet->size) {
-		warn("os_process_pipe_write for packet data failed");
-		signal_failure(stream);
-		return false;
-	}
-
-	stream->total_bytes += packet->size;
-	return true;
-}
+			 struct encoder_packet *packet);
 
 static void *process_packet(struct ffmpeg_muxer *stream)
 {
@@ -522,6 +437,7 @@ static void *process_packet(struct ffmpeg_muxer *stream)
 static void *write_thread(void *data)
 {
 	printf("\nWrite thread: Enters write_thread fxn\n");
+	stream->write_thread_active = true;
 	struct ffmpeg_muxer *stream = data;
 
 	while (os_sem_wait(stream->write_sem) == 0) {
@@ -552,14 +468,9 @@ static bool try_connect(struct ffmpeg_muxer *stream)
 {
 	printf("Write: enters try_connect\n");
 	stream->active = true;
-	if (!obs_output_can_begin_data_capture(stream->output, 0))
-		return false;
 
 	printf("Write: right before calling write_thread\n");
 	write_thread(stream);
-	printf("Write: about to begin data capture\n");
-	obs_output_begin_data_capture(stream->output, 0);
-	stream->write_thread_active = true;
 	return true;
 }
 
@@ -695,12 +606,13 @@ static bool ffmpeg_hls_mux_start(void *data)
 	os_atomic_set_bool(&stream->capturing, true);
 	os_atomic_set_bool(&stream->stopping, false);
 	stream->total_bytes = 0;
+	obs_output_begin_data_capture(stream->output, 0);
 
 	dstr_copy(&stream->printable_path, path_str);
 	info("Writing to path '%s'...", stream->printable_path.array);
 
 	printf("\nCaller: in hls_mux_start about to create write_thread\n");
-	ret = pthread_create(stream->write_thread, NULL, start_thread, stream);
+	ret = pthread_create(&stream->write_thread, NULL, start_thread, stream);
 	printf("Caller: just created write_thread\n");
 	return (stream->connecting = (ret == 0));
 }
@@ -741,6 +653,70 @@ static void ffmpeg_mux_stop(void *data, uint64_t ts)
 		os_atomic_set_bool(&stream->stopping, true);
 		os_atomic_set_bool(&stream->capturing, false);
 	}
+}
+
+static void signal_failure(struct ffmpeg_muxer *stream)
+{
+	char error[1024];
+	int ret;
+	int code;
+
+	size_t len;
+
+	len = os_process_pipe_read_err(stream->pipe, (uint8_t *)error,
+				       sizeof(error) - 1);
+
+	if (len > 0) {
+		error[len] = 0;
+		warn("ffmpeg-mux: %s", error);
+		obs_output_set_last_error(stream->output, error);
+	}
+
+	ret = deactivate(stream, 0);
+
+	switch (ret) {
+	case FFM_UNSUPPORTED:
+		code = OBS_OUTPUT_UNSUPPORTED;
+		break;
+	default:
+		code = OBS_OUTPUT_ERROR;
+	}
+
+	obs_output_signal_stop(stream->output, code);
+	os_atomic_set_bool(&stream->capturing, false);
+}
+
+static bool write_packet(struct ffmpeg_muxer *stream,
+			 struct encoder_packet *packet)
+{
+	bool is_video = packet->type == OBS_ENCODER_VIDEO;
+	size_t ret;
+
+	struct ffm_packet_info info = {.pts = packet->pts,
+				       .dts = packet->dts,
+				       .size = (uint32_t)packet->size,
+				       .index = (int)packet->track_idx,
+				       .type = is_video ? FFM_PACKET_VIDEO
+							: FFM_PACKET_AUDIO,
+				       .keyframe = packet->keyframe};
+
+	ret = os_process_pipe_write(stream->pipe, (const uint8_t *)&info,
+				    sizeof(info));
+	if (ret != sizeof(info)) {
+		warn("os_process_pipe_write for info structure failed");
+		signal_failure(stream);
+		return false;
+	}
+
+	ret = os_process_pipe_write(stream->pipe, packet->data, packet->size);
+	if (ret != packet->size) {
+		warn("os_process_pipe_write for packet data failed");
+		signal_failure(stream);
+		return false;
+	}
+
+	stream->total_bytes += packet->size;
+	return true;
 }
 
 static bool send_audio_headers(struct ffmpeg_muxer *stream,
