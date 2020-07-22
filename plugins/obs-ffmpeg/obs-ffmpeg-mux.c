@@ -400,8 +400,10 @@ static void ffmpeg_hls_mux_full_stop(void *data)
 static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 				  struct encoder_packet *packet)
 {
+	struct encoder_packet pkt; 
 	pthread_mutex_lock(&stream->write_mutex);
-	da_push_back(stream->mux_packets, &packet);
+	obs_encoder_packet_ref(&pkt, packet);
+	da_push_back(stream->mux_packets, &pkt);
 	pthread_mutex_unlock(&stream->write_mutex);
 	os_sem_post(stream->write_sem);
 
@@ -428,6 +430,7 @@ static void *process_packet(struct ffmpeg_muxer *stream)
 		da_erase(stream->mux_packets, 0);
 		new_packet = true;
 	}
+	
 	printf("Process packet: 4. packet popped off array\n");
 	pthread_mutex_unlock(&stream->write_mutex);
 
@@ -437,10 +440,8 @@ static void *process_packet(struct ffmpeg_muxer *stream)
 	printf("Process packet: 5. before write_packet of packet\n");
 	ret = write_packet(stream, &packet);
 	printf("Process packet: 6. before releasing packet\n");
-	if (remaining != 1) {
-		//printf("Process packet: 6.5 releasing packet\n");
-		obs_encoder_packet_release(&packet);
-	}
+	//printf("Process packet: 6.5 releasing packet\n");
+	obs_encoder_packet_release(&packet);
 	printf("Process packet: 7. after releasing packet\n");
 	return (ret ? 0 : NULL);
 }
