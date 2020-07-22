@@ -306,11 +306,9 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 
 	get_opt_str(argc, argv, &global_stream_key, "stream key");
 	if (strcmp(global_stream_key, "") != 0) {
-		struct dstr tmp = {0};
-		dstr_copy(&tmp, params->file);
-		dstr_replace(&tmp, global_stream_key, "{stream_key}");
-		dstr_copy(&params->printable_file, tmp.array);
-		dstr_free(&tmp);
+		dstr_copy(&params->printable_file, params->file);
+		dstr_replace(&params->printable_file, global_stream_key,
+			     "{stream_key}");
 		av_log_set_callback(ffmpeg_log_callback);
 	}
 
@@ -529,9 +527,9 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 				AVIO_FLAG_WRITE);
 		if (ret < 0) {
 			fprintf(stderr, "Couldn't open '%s', %s\n",
-				ffm->params.printable_file.len
-					? ffm->params.printable_file.array
-					: ffm->params.file,
+				dstr_is_empty(&ffm->params.printable_file)
+					? ffm->params.file
+					: ffm->params.printable_file.array,
 				av_err2str(ret));
 			return FFM_ERROR;
 		}
@@ -564,9 +562,9 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 	ret = avformat_write_header(ffm->output, &dict);
 	if (ret < 0) {
 		fprintf(stderr, "Error opening '%s': %s",
-			ffm->params.printable_file.len
-				? ffm->params.printable_file.array
-				: ffm->params.file,
+			dstr_is_empty(&ffm->params.printable_file)
+				? ffm->params.file
+				: ffm->params.printable_file.array,
 			av_err2str(ret));
 
 		av_dict_free(&dict);
@@ -608,9 +606,9 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
-			ffm->params.printable_file.len
-				? ffm->params.printable_file.array
-				: ffm->params.file);
+			dstr_is_empty(ffm->params.printable_file)
+				? ffm->params.file
+				: ffm->params.printable_file.array);
 		return FFM_ERROR;
 	}
 	printf("info: Output format name and long_name: %s, %s\n",

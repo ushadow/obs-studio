@@ -46,7 +46,8 @@ struct ffmpeg_muxer {
 	uint64_t total_bytes;
 	struct dstr path;
 	/* printable_path is path with any stream key information removed */
-	const char *printable_path;
+	struct dstr printable_path;
+	struct dstr stream_key;
 	struct dstr muxer_settings;
 	bool sent_headers;
 	volatile bool active;
@@ -117,6 +118,8 @@ static void ffmpeg_mux_destroy(void *data)
 
 	os_process_pipe_destroy(stream->pipe);
 	dstr_free(&stream->path);
+	dstr_free(&stream->printable_path);
+	dstr_free(&stream->stream_key);
 	dstr_free(&stream->muxer_settings);
 	bfree(stream);
 }
@@ -219,25 +222,9 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 	av_dict_free(&dict);
 }
 
-const char *get_stream_key(struct ffmpeg_muxer *stream)
-{
-	obs_service_t *service;
-	const char *stream_key;
-
-	service = obs_output_get_service(stream->output);
-	if (!service)
-		return NULL;
-	stream_key = obs_service_get_key(service);
-	return stream_key;
-}
-
 static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
 {
-	const char *stream_key;
-
-	stream_key = get_stream_key(stream);
-
-	dstr_catf(cmd, "\"%s\" ", stream_key ? stream_key : "");
+	dstr_catf(cmd, "\"%s\" ", (dstr_is_empty(stream->stream_key) ? "" : stream->stream_key.array);
 }
 
 static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
@@ -396,7 +383,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	struct ffmpeg_muxer *stream = data;
 	obs_service_t *service;
 	const char *path_str;
-	const char *stream_key;
+	const char *streamkey;
 	struct dstr path = {0};
 	obs_encoder_t *vencoder;
 	obs_data_t *settings;
@@ -411,7 +398,8 @@ static bool ffmpeg_hls_mux_start(void *data)
 	if (!service)
 		return false;
 	path_str = obs_service_get_url(service);
-	stream_key = obs_service_get_key(service);
+	streamkey = obs_service_get_key(service);
+	dstr_copy(&stream->stream_key, streamkey);
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
 	dstr_init(&stream->muxer_settings);
@@ -444,8 +432,8 @@ static bool ffmpeg_hls_mux_start(void *data)
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
 
-	stream->printable_path = path_str;
-	info("Writing to path '%s'...", stream->printable_path);
+	dstr_copy(&stream->printable_path, path_str);
+	info("Writing to path '%s'...", stream->printable_path.array);
 
 	return true;
 }
@@ -462,8 +450,9 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->sent_headers, false);
 
 		info("Output of file '%s' stopped",
-		     stream->printable_path ? stream->printable_path
-					    : stream->path.array);
+		     dstr_is_empty(stream->printable_path)
+			     ? stream->path.array
+			     : stream->printable_path.array);
 	}
 
 	if (code) {
@@ -900,8 +889,9 @@ static void *replay_buffer_mux_thread(void *data)
 
 	if (!send_headers(stream)) {
 		warn("Could not write headers for file '%s'",
-		     stream->printable_path ? stream->printable_path
-					    : stream->path.array);
+		     dstr_is_empty(stream->printable_path)
+			     ? stream->path.array
+			     : stream->printable_path.array);
 		goto error;
 	}
 
@@ -911,9 +901,10 @@ static void *replay_buffer_mux_thread(void *data)
 		obs_encoder_packet_release(pkt);
 	}
 
-	info("Wrote replay buffer to '%s'", stream->printable_path
-						    ? stream->printable_path
-						    : stream->path.array);
+	info("Wrote replay buffer to '%s'",
+	     dstr_is_empty(stream->printable_path)
+		     ? stream->path.array
+		     : stream->printable_path.array);
 
 error:
 	os_process_pipe_destroy(stream->pipe);
