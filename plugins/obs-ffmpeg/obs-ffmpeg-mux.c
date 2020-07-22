@@ -224,7 +224,10 @@ static void log_muxer_params(struct ffmpeg_muxer *stream, const char *settings)
 
 static void add_stream_key(struct dstr *cmd, struct ffmpeg_muxer *stream)
 {
-	dstr_catf(cmd, "\"%s\" ", (dstr_is_empty(stream->stream_key) ? "" : stream->stream_key.array);
+	dstr_catf(cmd, "\"%s\" ",
+		  dstr_is_empty(&stream->stream_key)
+			  ? ""
+			  : stream->stream_key.array);
 }
 
 static void add_muxer_params(struct dstr *cmd, struct ffmpeg_muxer *stream)
@@ -401,7 +404,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	streamkey = obs_service_get_key(service);
 	dstr_copy(&stream->stream_key, streamkey);
 	dstr_copy(&path, path_str);
-	dstr_replace(&path, "{stream_key}", stream_key);
+	dstr_replace(&path, "{stream_key}", streamkey);
 	dstr_init(&stream->muxer_settings);
 	dstr_catf(&stream->muxer_settings,
 		  "http_user_agent=libobs/%s method=PUT http_persistent=1",
@@ -450,7 +453,7 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->sent_headers, false);
 
 		info("Output of file '%s' stopped",
-		     dstr_is_empty(stream->printable_path)
+		     dstr_is_empty(&stream->printable_path)
 			     ? stream->path.array
 			     : stream->printable_path.array);
 	}
@@ -889,7 +892,7 @@ static void *replay_buffer_mux_thread(void *data)
 
 	if (!send_headers(stream)) {
 		warn("Could not write headers for file '%s'",
-		     dstr_is_empty(stream->printable_path)
+		     dstr_is_empty(&stream->printable_path)
 			     ? stream->path.array
 			     : stream->printable_path.array);
 		goto error;
@@ -902,7 +905,7 @@ static void *replay_buffer_mux_thread(void *data)
 	}
 
 	info("Wrote replay buffer to '%s'",
-	     dstr_is_empty(stream->printable_path)
+	     dstr_is_empty(&stream->printable_path)
 		     ? stream->path.array
 		     : stream->printable_path.array);
 

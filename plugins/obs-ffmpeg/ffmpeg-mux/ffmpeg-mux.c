@@ -606,7 +606,7 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 
 	if (output_format == NULL) {
 		fprintf(stderr, "Couldn't find an appropriate muxer for '%s'\n",
-			dstr_is_empty(ffm->params.printable_file)
+			dstr_is_empty(&ffm->params.printable_file)
 				? ffm->params.file
 				: ffm->params.printable_file.array);
 		return FFM_ERROR;
