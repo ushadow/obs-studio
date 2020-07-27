@@ -356,10 +356,14 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 				  struct encoder_packet *packet)
 {
 	struct encoder_packet pkt;
-	pthread_mutex_lock(&stream->write_mutex);
 	obs_encoder_packet_ref(&pkt, packet);
+	printf("\nwrite_packet_to_array: grabbing lock to add item\n");
+	pthread_mutex_lock(&stream->write_mutex);
+	printf("write_packet_to_array: critical section\n");
 	da_push_back(stream->mux_packets, &pkt);
+	printf("write_packet_to_array: added pkt. %d packets on array\n", stream->mux_packets.num);
 	pthread_mutex_unlock(&stream->write_mutex);
+	printf("write_packet_to_array: lock released\n");
 	os_sem_post(stream->write_sem);
 
 	return true;
@@ -370,24 +374,26 @@ static bool write_packet(struct ffmpeg_muxer *stream,
 
 static int process_packet(struct ffmpeg_muxer *stream)
 {
-	struct encoder_packet packet;
+	struct encoder_packet* packet;
 	int remaining;
-	bool new_packet = false;
 
+	printf("\nProcess_packet: grabbing lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
 	if (remaining) {
-		packet = stream->mux_packets.array[0];
+		packet = &stream->mux_packets.array[0];
+		write_packet(stream, packet);
+		long *p_refs = ((long *)packet->data) - 1;
+		printf("Process_packet: pre-release of %x\n", p_refs);
+		obs_encoder_packet_release(packet);
+		printf("Process_packet: post-release of %x\n", p_refs);
 		da_erase(stream->mux_packets, 0);
-		new_packet = true;
+		long *p_refs2 = ((long *) &stream->mux_packets.array[0].data) - 1;
+		printf("ADDRESS: address of new first element %x. And remaining #: %d\n\n", p_refs2, stream->mux_packets.num);
 	}
+	printf("\nProcess_packet: about to release lock\n");
 	pthread_mutex_unlock(&stream->write_mutex);
 
-	if (new_packet) {
-		write_packet(stream, &packet);
-		printf("Process_packet: before releasing packet\n");
-		obs_encoder_packet_release(&packet);
-	}
 	return 0;
 }
 
@@ -577,7 +583,7 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 	}
 
 	os_atomic_set_bool(&stream->stopping, false);
-
+	printf("Deactivate: check if mux_thread_joinable set\n");
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
@@ -585,14 +591,14 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		stream->mux_thread_joinable = false;
 	}
 
-	struct encoder_packet packet;
+	struct encoder_packet* packet;
 
 	pthread_mutex_lock(&stream->write_mutex);
 	if (stream->mux_packets.num) {
-		packet = stream->mux_packets.array[0];
+		packet = &stream->mux_packets.array[0];
+		obs_encoder_packet_release(packet);
 		da_erase(stream->mux_packets, 0);
 		printf("Deactivate: encoder packet release\n");
-		obs_encoder_packet_release(&packet);
 	}
 	da_free(stream->mux_packets);
 	pthread_mutex_unlock(&stream->write_mutex);

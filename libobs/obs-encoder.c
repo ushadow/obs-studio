@@ -1336,11 +1336,13 @@ void obs_free_encoder_packet(struct encoder_packet *packet)
 void obs_encoder_packet_ref(struct encoder_packet *dst,
 			    struct encoder_packet *src)
 {
+	printf("\nobs_encoder_ref: enter ref\n");
 	if (!src)
 		return;
 
 	if (src->data) {
 		long *p_refs = ((long *)src->data) - 1;
+		printf("obs_encoder_ref: reffing p_refs %x\n", p_refs);
 		os_atomic_inc_long(p_refs);
 	}
 
@@ -1352,12 +1354,16 @@ void obs_encoder_packet_release(struct encoder_packet *pkt)
 	if (!pkt)
 		return;
 
+	printf("\nobs_encoder_release: before check pkt has data\n");
 	if (pkt->data) {
+		printf("obs_encoder_release: pkt had data\n");
 		long *p_refs = ((long *)pkt->data) - 1;
-		if (os_atomic_dec_long(p_refs) == 0)
+		if (os_atomic_dec_long(p_refs) == 0) {
+			printf("obs_encoder_release: p_refs about to be freed %x\n", p_refs);
 			bfree(p_refs);
+		}
 	}
-
+	printf("obs_encoder_release: before memset\n\n");
 	memset(pkt, 0, sizeof(struct encoder_packet));
 }
 
