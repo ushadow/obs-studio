@@ -260,7 +260,6 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 static bool init_params(int *argc, char ***argv, struct main_params *params,
 			struct audio_params **p_audio)
 {
-	//printf("Maya's log: ENTERED INIT_PARAMS FXN\n");
 	struct audio_params *audio = NULL;
 
 	if (!get_opt_str(argc, argv, &params->file, "file name"))
@@ -298,7 +297,6 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 		if (!get_opt_int(argc, argv, &params->fps_den, "video fps den"))
 			return false;
 	}
-	//printf("Maya's log: After checking has->video\n");
 
 	if (params->tracks) {
 		if (!get_opt_str(argc, argv, &params->acodec, "audio codec"))
@@ -313,7 +311,6 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 			}
 		}
 	}
-	//printf("Maya's log: After checking params->tracks\n");
 
 	*p_audio = audio;
 
@@ -326,7 +323,6 @@ static bool init_params(int *argc, char ***argv, struct main_params *params,
 	}
 
 	get_opt_str(argc, argv, &params->muxer_settings, "muxer settings");
-	//printf("Maya's log: After getting muxer_settings\n");
 
 	return true;
 }
@@ -498,7 +494,6 @@ static size_t safe_read(void *vdata, size_t size)
 	while (size > 0) {
 		size_t in_size = fread(data, 1, size, stdin);
 		if (in_size == 0) {
-			//printf("Lena's log: in_size is 0\n");
 			return 0;
 		}
 
@@ -515,20 +510,16 @@ static bool ffmpeg_mux_get_header(struct ffmpeg_mux *ffm)
 
 	bool success = safe_read(&info, sizeof(info)) == sizeof(info);
 	if (success) {
-		//printf("Lena's log: success goes into if\n");
 		uint8_t *data = malloc(info.size);
 
 		if (safe_read(data, info.size) == info.size) {
 			ffmpeg_mux_header(ffm, data, &info);
 		} else {
-			//printf("Lena's log: success actively set to false\n");
 			success = false;
 		}
 
 		free(data);
-	} else {
-		//printf("Lena's log: success goes directly into else\n");
-	}
+	} 
 
 	return success;
 }
@@ -537,14 +528,12 @@ static inline bool ffmpeg_mux_get_extra_data(struct ffmpeg_mux *ffm)
 {
 	if (ffm->params.has_video) {
 		if (!ffmpeg_mux_get_header(ffm)) {
-			//printf("Lena's log: can't get header after has_video\n");
 			return false;
 		}
 	}
 
 	for (int i = 0; i < ffm->params.tracks; i++) {
 		if (!ffmpeg_mux_get_header(ffm)) {
-			//printf("Lena's log: can't get header after params.track\n");
 			return false;
 		}
 	}
@@ -619,7 +608,6 @@ static inline int open_output_file(struct ffmpeg_mux *ffm)
 
 static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 {
-	//printf("Maya's log: Enters ffmpeg_mux_init_context\n");
 	AVOutputFormat *output_format;
 	int ret;
 	bool is_network = false;
@@ -679,40 +667,32 @@ static int ffmpeg_mux_init_context(struct ffmpeg_mux *ffm)
 static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 				    char *argv[])
 {
-	//printf("Maya's log: Enters ffmpeg_mux_init_internal\n");
 	argc--;
 	argv++;
-	//printf("Maya's log: Before init_params\n");
 	if (!init_params(&argc, &argv, &ffm->params, &ffm->audio)) {
-		//printf("Maya's log: Init_params returned an error\n");
 		return FFM_ERROR;
 	}
 
-	//printf("Maya's log: After init_params\n");
 	if (ffm->params.tracks) {
 		ffm->audio_header =
 			calloc(ffm->params.tracks, sizeof(*ffm->audio_header));
 	}
-	//printf("Maya's log: After checking ffm->params.tracks\n");
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(58, 9, 100)
 	av_register_all();
 #endif
 
 	if (!ffmpeg_mux_get_extra_data(ffm)) {
-		//printf("Maya's log: ffmpeg_mux_get_extra_data returned an error\n");
 		return FFM_ERROR;
 	}
 
 	/* ffmpeg does not have a way of telling what's supported
 	 * for a given output format, so we try each possibility */
-	//printf("Maya's log: ffmpeg_init_internal returning CONTEXT init\n");
 	return ffmpeg_mux_init_context(ffm);
 }
 
 static int ffmpeg_mux_init(struct ffmpeg_mux *ffm, int argc, char *argv[])
 {
-	//printf("Maya's log: Enters ffmpeg_mux_init\n");
 	int ret = ffmpeg_mux_init_internal(ffm, argc, argv);
 	if (ret != FFM_SUCCESS) {
 		ffmpeg_mux_free(ffm);
