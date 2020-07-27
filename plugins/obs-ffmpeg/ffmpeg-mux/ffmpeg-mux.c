@@ -493,9 +493,8 @@ static size_t safe_read(void *vdata, size_t size)
 
 	while (size > 0) {
 		size_t in_size = fread(data, 1, size, stdin);
-		if (in_size == 0) {
+		if (in_size == 0)
 			return 0;
-		}
 
 		size -= in_size;
 		data += in_size;
@@ -519,7 +518,7 @@ static bool ffmpeg_mux_get_header(struct ffmpeg_mux *ffm)
 		}
 
 		free(data);
-	} 
+	}
 
 	return success;
 }
@@ -669,9 +668,8 @@ static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 {
 	argc--;
 	argv++;
-	if (!init_params(&argc, &argv, &ffm->params, &ffm->audio)) {
+	if (!init_params(&argc, &argv, &ffm->params, &ffm->audio))
 		return FFM_ERROR;
-	}
 
 	if (ffm->params.tracks) {
 		ffm->audio_header =
@@ -682,9 +680,8 @@ static int ffmpeg_mux_init_internal(struct ffmpeg_mux *ffm, int argc,
 	av_register_all();
 #endif
 
-	if (!ffmpeg_mux_get_extra_data(ffm)) {
+	if (!ffmpeg_mux_get_extra_data(ffm))
 		return FFM_ERROR;
-	}
 
 	/* ffmpeg does not have a way of telling what's supported
 	 * for a given output format, so we try each possibility */
