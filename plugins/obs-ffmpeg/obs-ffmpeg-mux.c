@@ -114,8 +114,9 @@ static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
 
 static void ffmpeg_mux_destroy(void *data)
 {
-	printf("Ffmpeg_mux_destroy: entered\n");
+	printf("FFmpeg_mux_destroy: entered\n");
 	struct ffmpeg_muxer *stream = data;
+
 	if (stream) {
 		replay_buffer_clear(stream);
 		if (stream->mux_thread_joinable) {
@@ -142,7 +143,7 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 	pthread_mutex_init_value(&stream->write_mutex);
 	stream->output = output;
 
-	// inits mutex, semaphore and event
+	/* init mutex, semaphore and event */
 	if (pthread_mutex_init(&stream->write_mutex, NULL) != 0)
 		goto fail;
 	if (os_event_init(&stream->stop_event, OS_EVENT_TYPE_AUTO) != 0)
@@ -382,10 +383,7 @@ static int process_packet(struct ffmpeg_muxer *stream)
 	}
 	pthread_mutex_unlock(&stream->write_mutex);
 
-	if (!new_packet) {
-		return 0;
-	}
-	else {
+	if (new_packet) {
 		write_packet(stream, &packet);
 		printf("Process_packet: before releasing packet\n");
 		obs_encoder_packet_release(&packet);
@@ -412,7 +410,7 @@ static void *write_thread(void *data)
 				code = OBS_OUTPUT_NO_SPACE;
 
 			obs_output_signal_stop(stream->output, code);
-			deactivate(stream,0);
+			deactivate(stream, 0);
 			break;
 		}
 	}
@@ -429,7 +427,6 @@ static void *start_thread(void *data)
 	stream->active = true;
 	write_thread(stream);
 
-	stream->mux_thread_joinable = false;
 	return NULL;
 }
 
@@ -438,7 +435,7 @@ static bool ffmpeg_mux_start(void *data)
 	struct ffmpeg_muxer *stream = data;
 	obs_data_t *settings;
 	const char *path;
-	
+
 	if (!obs_output_can_begin_data_capture(stream->output, 0))
 		return false;
 	if (!obs_output_initialize_encoders(stream->output, 0))
@@ -544,7 +541,6 @@ static bool ffmpeg_hls_mux_start(void *data)
 
 	/* write headers and start capture */
 	os_atomic_set_bool(&stream->capturing, true);
-	os_atomic_set_bool(&stream->stopping, false);
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
 
@@ -582,13 +578,14 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 
 	os_atomic_set_bool(&stream->stopping, false);
 
-	struct encoder_packet packet;
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
 		pthread_join(stream->mux_thread, NULL);
 		stream->mux_thread_joinable = false;
 	}
+
+	struct encoder_packet packet;
 
 	pthread_mutex_lock(&stream->write_mutex);
 	if (stream->mux_packets.num) {
@@ -605,7 +602,6 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 
 static void ffmpeg_mux_stop(void *data, uint64_t ts)
 {
-	printf("IN FFMPEG_MUX_STOP\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (capturing(stream) || ts == 0) {
@@ -649,7 +645,6 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 static bool write_packet(struct ffmpeg_muxer *stream,
 			 struct encoder_packet *packet)
 {
-	//printf("\nWrite_packet: entered\n");
 	bool is_video = packet->type == OBS_ENCODER_VIDEO;
 	size_t ret;
 
@@ -675,7 +670,7 @@ static bool write_packet(struct ffmpeg_muxer *stream,
 		signal_failure(stream);
 		return false;
 	}
-	
+
 	stream->total_bytes += packet->size;
 	return true;
 }
@@ -892,9 +887,6 @@ static void *replay_buffer_create(obs_data_t *settings, obs_output_t *output)
 			 get_last_replay, stream);
 
 	return stream;
-
-fail:
-	return NULL;
 }
 
 static void replay_buffer_destroy(void *data)
