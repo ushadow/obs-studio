@@ -358,7 +358,7 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 	struct encoder_packet pkt;
 	pthread_mutex_lock(&stream->write_mutex);
 	obs_encoder_packet_ref(&pkt, packet);
-	da_push_back(stream->mux_packets, packet);
+	da_push_back(stream->mux_packets, &pkt);
 	pthread_mutex_unlock(&stream->write_mutex);
 	os_sem_post(stream->write_sem);
 
