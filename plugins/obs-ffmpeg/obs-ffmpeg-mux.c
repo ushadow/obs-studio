@@ -578,7 +578,6 @@ static bool ffmpeg_hls_mux_start(void *data)
 	return (stream->mux_thread_joinable);
 }
 
-<<<<<<< HEAD
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	printf("\nIN PURE DEACTIVATE\n");
@@ -627,8 +626,6 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 	return ret;
 }
 
-=======
->>>>>>> 39e28f9f... obs-ffmpeg: Start fixing deactivate
 static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	printf("\nIN PURE DEACTIVATE\n");
