@@ -634,11 +634,7 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 
 static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
-<<<<<<< HEAD
 	printf("\nIN PURE DEACTIVATE\n");
-=======
-	printf("hls_deactivate: entered\n");
->>>>>>> 0676098e... obs-ffmpeg: Fix pipe write HLS
 	int ret = -1;
 
 	if (active(stream)) {
@@ -667,10 +663,6 @@ static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 	}
 
 	struct encoder_packet* packet;
-<<<<<<< HEAD
-=======
-	size_t i; 
->>>>>>> 0676098e... obs-ffmpeg: Fix pipe write HLS
 
 	printf("\nDeactivate: grabbing lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
@@ -834,15 +826,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 			return;
 		}
 	}
-<<<<<<< HEAD
 	write_packet(stream, packet);
-=======
-
-	if (stream->threading_buffer) 
-		write_packet_to_array(stream, packet);
-	else	
-		write_packet(stream, packet);
->>>>>>> 0676098e... obs-ffmpeg: Fix pipe write HLS
 }
 
 static obs_properties_t *ffmpeg_mux_properties(void *unused)
