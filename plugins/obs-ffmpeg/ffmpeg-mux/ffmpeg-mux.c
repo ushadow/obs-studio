@@ -228,13 +228,13 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 		break;
 
 	case AV_LOG_WARNING:
-		fprintf(stdout, "warning: %s[ffmpeg_muxer] %s%s",
+		fprintf(stdout, "%swarning: [ffmpeg_muxer] %s%s",
 			ANSI_COLOR_MAGENTA, out.array, ANSI_COLOR_RESET);
 		fflush(stdout);
 		break;
 
 	case AV_LOG_ERROR:
-		fprintf(stderr, "error: %s[ffmpeg_muxer] %s%s", ANSI_COLOR_RED,
+		fprintf(stderr, "%serror: [ffmpeg_muxer] %s%s", ANSI_COLOR_RED,
 			out.array, ANSI_COLOR_RESET);
 		fflush(stderr);
 	}
