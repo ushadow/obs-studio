@@ -30,9 +30,7 @@
 #include <util/dstr.h>
 #include <libavformat/avformat.h>
 
-#define ANSI_COLOR_BLK "\x1b[0;90m"
 #define ANSI_COLOR_RED "\x1b[0;91m"
-#define ANSI_COLOR_YELLOW "\x1b[0;93m"
 #define ANSI_COLOR_MAGENTA "\x1b[0;95m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 
@@ -230,15 +228,13 @@ static void ffmpeg_log_callback(void *param, int level, const char *format,
 		break;
 
 	case AV_LOG_WARNING:
-		fprintf(stdout, "warning: %s[ffmpeg_muxer]%s %s%s%s",
-			ANSI_COLOR_MAGENTA, ANSI_COLOR_RESET, ANSI_COLOR_YELLOW,
-			out.array, ANSI_COLOR_RESET);
+		fprintf(stdout, "warning: %s[ffmpeg_muxer] %s%s",
+			ANSI_COLOR_MAGENTA, out.array, ANSI_COLOR_RESET);
 		fflush(stdout);
 		break;
 
 	case AV_LOG_ERROR:
-		fprintf(stderr, "error: %s[ffmpeg_muxer]%s %s%s%s",
-			ANSI_COLOR_BLK, ANSI_COLOR_RESET, ANSI_COLOR_RED,
+		fprintf(stderr, "error: %s[ffmpeg_muxer] %s%s", ANSI_COLOR_RED,
 			out.array, ANSI_COLOR_RESET);
 		fflush(stderr);
 	}
