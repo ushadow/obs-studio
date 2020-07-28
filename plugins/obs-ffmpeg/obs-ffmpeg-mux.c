@@ -137,16 +137,29 @@ static void ffmpeg_mux_destroy(void *data)
 	bfree(stream);
 }
 
+static void ffmpeg_hls_full_stop(void *data)
+{
+	struct ffmpeg_muxer *output = data;
+
+	if (output->active) {
+		obs_output_end_data_capture(output->output);
+		hls_deactivate(output);
+	}
+}
+
 static void ffmpeg_hls_mux_destroy(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
+		if (stream->mux_thread_joinable)
+			pthread_join(stream->start_thread, NULL);
+
+		ffmpeg_output_full_stop(output);
+
 		pthread_mutex_destroy(&stream->write_mutex);
 		os_sem_destroy(stream->write_sem);
 		os_event_destroy(stream->stop_event);
-
-		// add in full stop???
 
 		os_process_pipe_destroy(stream->pipe);
 		dstr_free(&stream->path);
@@ -403,21 +416,14 @@ static int process_packet(struct ffmpeg_muxer *stream)
 	struct encoder_packet* packet;
 	int remaining;
 
-	printf("\nProcess_packet: grabbing lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
 	if (remaining) {
 		packet = &stream->mux_packets.array[0];
 		write_packet(stream, packet);
-		long *p_refs = ((long *)packet->data) - 1;
-		printf("Process_packet: pre-release of %x\n", p_refs);
 		obs_encoder_packet_release(packet);
-		printf("Process_packet: post-release of %x\n", p_refs);
 		da_erase(stream->mux_packets, 0);
-		long *p_refs2 = ((long *) (&stream->mux_packets.array[0])->data) - 1;
-		printf("Process_packet: address of new first element %x. And remaining #: %d\n\n", p_refs2, stream->mux_packets.num);
 	}
-	printf("\nProcess_packet: about to release lock\n");
 	pthread_mutex_unlock(&stream->write_mutex);
 
 	return 0;
@@ -507,8 +513,7 @@ static bool ffmpeg_mux_start(void *data)
 	obs_output_begin_data_capture(stream->output, 0);
 
 	info("Writing file '%s'...", stream->path.array);
-
-
+	return true;
 }
 
 static bool ffmpeg_hls_mux_start(void *data)
@@ -560,6 +565,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	}
 
 	/* write headers and start capture */
+	os_atomic_set_bool(&stream->active, true);
 	os_atomic_set_bool(&stream->capturing, true);
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
@@ -607,15 +613,12 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 
 	struct encoder_packet* packet;
 
-	printf("\nDeactivate: grabbing lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
-	if (stream->mux_packets.num) {
+	// IS THIS A SAFE OPERATION // 
+	while (stream->mux_packets.num) {
 		packet = &stream->mux_packets.array[0];
-		long *p_refs = ((long *)packet->data) - 1;
-		printf("Deactivate: encoder packet release of %x\n", p_refs);
 		obs_encoder_packet_release(packet);
 		da_erase(stream->mux_packets, 0);
-		printf("Deactivate: after da_erase\n");
 	}
 	da_free(stream->mux_packets);
 	pthread_mutex_unlock(&stream->write_mutex);
@@ -1014,7 +1017,6 @@ static bool purge_front(struct ffmpeg_muxer *stream)
 		stream->cur_time = first.dts_usec;
 		stream->cur_size -= (int64_t)pkt.size;
 	}
-	printf("\npurge front: calling release function\n");
 	obs_encoder_packet_release(&pkt);
 	return keyframe;
 }
@@ -1107,8 +1109,6 @@ static void *replay_buffer_mux_thread(void *data)
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
 		struct encoder_packet *pkt = &stream->mux_packets.array[i];
 		write_packet(stream, pkt);
-		long *p_refs = ((long *)pkt->data) - 1;
-		printf("\nreplay_buffer_mux_thread: release of %x\n", p_refs);
 		obs_encoder_packet_release(pkt);
 	}
 
