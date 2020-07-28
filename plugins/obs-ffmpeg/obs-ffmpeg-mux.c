@@ -26,6 +26,8 @@
 #include <util/threading.h>
 #include "ffmpeg-mux/ffmpeg-mux.h"
 
+#include "congestion-control.h"
+
 #ifdef _WIN32
 #include "util/windows/win-version.h"
 #endif
@@ -76,6 +78,10 @@ struct ffmpeg_muxer {
 
 	bool is_network;
 	bool threading_buffer;
+
+	int dropped_frames;
+	int min_priority;
+	int64_t last_dts_usec;
 };
 
 static const char *ffmpeg_mux_getname(void *type)
@@ -201,6 +207,8 @@ static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 		stream->is_network = true;
 
 	os_atomic_set_bool(&stream->threading_buffer, true);
+	stream->dropped_frames = 0;
+	stream->min_priority = 0;
 
 	UNUSED_PARAMETER(settings);
 	return stream;
@@ -908,6 +916,7 @@ struct obs_output_info ffmpeg_hls_muxer = {
 	.get_total_bytes = ffmpeg_mux_total_bytes,
 	.get_properties = ffmpeg_mux_properties,
 	.get_connect_time_ms = ffmpeg_mpegts_mux_connect_time,
+	.get_dropped_frames = hls_stream_dropped_frames,
 };
 
 static const char *replay_buffer_getname(void *type)
