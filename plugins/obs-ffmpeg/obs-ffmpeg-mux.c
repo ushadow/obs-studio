@@ -810,6 +810,7 @@ static bool send_headers(struct ffmpeg_muxer *stream)
 
 static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
+	printf("\nffmpeg_mux_data: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (!active(stream)) {
