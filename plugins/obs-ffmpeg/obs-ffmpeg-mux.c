@@ -149,6 +149,7 @@ static void ffmpeg_hls_full_stop(void *data)
 
 static void ffmpeg_hls_mux_destroy(void *data)
 {
+	printf("ffmpeg_hls_mux_destroy: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
@@ -182,6 +183,7 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 
 static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 {
+	printf("ffmpeg_hls_mux_create: entered\n");
 	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
 	pthread_mutex_init_value(&stream->write_mutex);
 	stream->output = output;
@@ -197,6 +199,8 @@ static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 	// is this necessary for hls specifically 
 	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
 		stream->is_network = true;
+
+	os_atomic_set_bool(&stream->threading_buffer, true);
 
 	UNUSED_PARAMETER(settings);
 	return stream;
@@ -433,6 +437,7 @@ static int deactivate(struct ffmpeg_muxer *stream, int code);
 
 static void *write_thread(void *data)
 {
+	printf("write_thread: entered\n");
 	struct ffmpeg_muxer *stream = data;
 	stream->active = true;
 
@@ -573,6 +578,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	dstr_copy(&stream->printable_path, path_str);
 	info("Writing to path '%s'...", stream->printable_path.array);
 
+	printf("\nhls_mux_start: about to create mux_thread\n");
 	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
 						     write_thread, stream) == 0;
 	return (stream->mux_thread_joinable);
@@ -628,7 +634,11 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 
 static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
+<<<<<<< HEAD
 	printf("\nIN PURE DEACTIVATE\n");
+=======
+	printf("hls_deactivate: entered\n");
+>>>>>>> 0676098e... obs-ffmpeg: Fix pipe write HLS
 	int ret = -1;
 
 	if (active(stream)) {
@@ -648,7 +658,7 @@ static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 	}
 
 	os_atomic_set_bool(&stream->stopping, false);
-	printf("Deactivate: check if mux_thread_joinable set\n");
+
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
@@ -657,6 +667,10 @@ static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 	}
 
 	struct encoder_packet* packet;
+<<<<<<< HEAD
+=======
+	size_t i; 
+>>>>>>> 0676098e... obs-ffmpeg: Fix pipe write HLS
 
 	printf("\nDeactivate: grabbing lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
@@ -757,7 +771,7 @@ static bool send_audio_headers(struct ffmpeg_muxer *stream,
 
 	obs_encoder_get_extra_data(aencoder, &packet.data, &packet.size);
 	/* simply call write_packet because we are sending a header packet */
-	write_packet(stream, &packet);
+	return write_packet(stream, &packet);
 }
 
 static bool send_video_headers(struct ffmpeg_muxer *stream)
@@ -769,7 +783,7 @@ static bool send_video_headers(struct ffmpeg_muxer *stream)
 
 	obs_encoder_get_extra_data(vencoder, &packet.data, &packet.size);
 	/* simply call write_packet because we are sending a header */
-	write_packet(stream, &packet);
+	return write_packet(stream, &packet);
 }
 
 static bool send_headers(struct ffmpeg_muxer *stream)
@@ -777,8 +791,9 @@ static bool send_headers(struct ffmpeg_muxer *stream)
 	obs_encoder_t *aencoder;
 	size_t idx = 0;
 
-	if (!send_video_headers(stream))
+	if (!send_video_headers(stream)) {
 		return false;
+	}
 
 	do {
 		aencoder = obs_output_get_audio_encoder(stream->output, idx);
@@ -797,8 +812,9 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
 	struct ffmpeg_muxer *stream = data;
 
-	if (!active(stream))
+	if (!active(stream)) {
 		return;
+	}
 
 	/* encoder failure */
 	if (!packet) {
@@ -809,17 +825,24 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 	if (!stream->sent_headers) {
 		if (!send_headers(stream))
 			return;
-
 		stream->sent_headers = true;
 	}
 
-	if (stopping(stream)) {
+	if (stopping(stream)) {	
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			deactivate(stream, 0);
 			return;
 		}
 	}
+<<<<<<< HEAD
 	write_packet(stream, packet);
+=======
+
+	if (stream->threading_buffer) 
+		write_packet_to_array(stream, packet);
+	else	
+		write_packet(stream, packet);
+>>>>>>> 0676098e... obs-ffmpeg: Fix pipe write HLS
 }
 
 static obs_properties_t *ffmpeg_mux_properties(void *unused)
