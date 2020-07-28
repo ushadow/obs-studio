@@ -1356,8 +1356,8 @@ void obs_encoder_packet_release(struct encoder_packet *pkt)
 
 	printf("\nobs_encoder_release: before check pkt has data\n");
 	if (pkt->data) {
-		printf("obs_encoder_release: pkt had data\n");
 		long *p_refs = ((long *)pkt->data) - 1;
+		printf("obs_encoder_release: pkt had data %x\n", p_refs);
 		if (os_atomic_dec_long(p_refs) == 0) {
 			printf("obs_encoder_release: p_refs about to be freed %x\n", p_refs);
 			bfree(p_refs);
