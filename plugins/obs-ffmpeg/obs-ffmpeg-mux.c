@@ -117,7 +117,6 @@ static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
 
 static void ffmpeg_mux_destroy(void *data)
 {
-	printf("FFmpeg_mux_destroy: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
@@ -142,18 +141,14 @@ static void ffmpeg_mux_destroy(void *data)
 
 static void ffmpeg_hls_mux_destroy(void *data)
 {
-	printf("FFmpeg_mux_destroy: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
-		replay_buffer_clear(stream);
-		if (stream->mux_thread_joinable) {
-			pthread_join(stream->mux_thread, NULL);
-		}
-
 		pthread_mutex_destroy(&stream->write_mutex);
 		os_sem_destroy(stream->write_sem);
 		os_event_destroy(stream->stop_event);
+
+		// add in full stop???
 
 		os_process_pipe_destroy(stream->pipe);
 		dstr_free(&stream->path);
@@ -165,28 +160,13 @@ static void ffmpeg_hls_mux_destroy(void *data)
 static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 {
 	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
-	pthread_mutex_init_value(&stream->write_mutex);
 	stream->output = output;
-
-	/* init mutex, semaphore and event */
-	if (pthread_mutex_init(&stream->write_mutex, NULL) != 0)
-		goto fail;
-	if (os_event_init(&stream->stop_event, OS_EVENT_TYPE_AUTO) != 0)
-		goto fail;
-	if (os_sem_init(&stream->write_sem, 0) != 0)
-		goto fail;
 
 	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
 		stream->is_network = true;
 
 	UNUSED_PARAMETER(settings);
 	return stream;
-
-fail:
-	pthread_mutex_destroy(&stream->write_mutex);
-	os_event_destroy(stream->stop_event);
-	bfree(stream);
-	return NULL;
 }
 
 static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
@@ -203,6 +183,7 @@ static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 	if (os_sem_init(&stream->write_sem, 0) != 0)
 		goto fail;
 
+	// is this necessary for hls specifically 
 	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
 		stream->is_network = true;
 
@@ -215,7 +196,6 @@ fail:
 	bfree(stream);
 	return NULL;
 }
-
 
 #ifdef _WIN32
 #define FFMPEG_MUX "obs-ffmpeg-mux.exe"
@@ -935,8 +915,8 @@ struct obs_output_info ffmpeg_hls_muxer = {
 	.encoded_video_codecs = "h264",
 	.encoded_audio_codecs = "aac",
 	.get_name = ffmpeg_hls_mux_getname,
-	.create = ffmpeg_mux_create,
-	.destroy = ffmpeg_mux_destroy,
+	.create = ffmpeg_hls_mux_create,
+	.destroy = ffmpeg_hls_mux_destroy,
 	.start = ffmpeg_hls_mux_start,
 	.stop = ffmpeg_mux_stop,
 	.encoded_packet = ffmpeg_mux_data,
