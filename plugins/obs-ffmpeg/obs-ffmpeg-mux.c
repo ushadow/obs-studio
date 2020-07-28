@@ -153,7 +153,7 @@ static void ffmpeg_hls_mux_destroy(void *data)
 
 	if (stream) {
 		if (stream->mux_thread_joinable)
-			pthread_join(stream->start_thread, NULL);
+			pthread_join(stream->mux_thread, NULL);
 
 		ffmpeg_output_full_stop(output);
 
@@ -433,8 +433,8 @@ static int deactivate(struct ffmpeg_muxer *stream, int code);
 
 static void *write_thread(void *data)
 {
-	stream->active = true;
 	struct ffmpeg_muxer *stream = data;
+	stream->active = true;
 
 	while (os_sem_wait(stream->write_sem) == 0) {
 
