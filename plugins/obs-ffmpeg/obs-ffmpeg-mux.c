@@ -101,8 +101,6 @@ static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
 	while (stream->packets.size > 0) {
 		struct encoder_packet pkt;
 		circlebuf_pop_front(&stream->packets, &pkt, sizeof(pkt));
-		long *p_refs = ((long *)pkt.data) - 1;
-		printf("replay_buffer_clear: release of %x\n", p_refs);
 		obs_encoder_packet_release(&pkt);
 	}
 
@@ -390,16 +388,10 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 {
 	struct encoder_packet pkt;
 	obs_encoder_packet_ref(&pkt, packet);
-	printf("\nwrite_packet_to_array: grabbing lock to add item\n");
 	pthread_mutex_lock(&stream->write_mutex);
-	printf("write_packet_to_array: critical section\n");
-	long *p_refs = ((long *)packet->data) - 1;
 	da_push_back(stream->mux_packets, &pkt);
-	printf("write_packet_to_array: added pkt %x. %d packets on array\n", p_refs, stream->mux_packets.num);
 	pthread_mutex_unlock(&stream->write_mutex);
-	printf("write_packet_to_array: lock released\n");
 	os_sem_post(stream->write_sem);
-
 	return true;
 }
 
@@ -435,6 +427,7 @@ static int deactivate(struct ffmpeg_muxer *stream, int code);
 
 static void *write_thread(void *data)
 {
+	stream->active = true;
 	struct ffmpeg_muxer *stream = data;
 
 	while (os_sem_wait(stream->write_sem) == 0) {
@@ -456,17 +449,6 @@ static void *write_thread(void *data)
 	}
 
 	stream->active = false;
-	return NULL;
-}
-
-static void *start_thread(void *data)
-{
-	printf("\nMux_thread: enters start_thread\n");
-	struct ffmpeg_muxer *stream = data;
-
-	stream->active = true;
-	write_thread(stream);
-
 	return NULL;
 }
 
@@ -526,9 +508,7 @@ static bool ffmpeg_mux_start(void *data)
 
 	info("Writing file '%s'...", stream->path.array);
 
-	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
-						     start_thread, stream) == 0;
-	return (stream->mux_thread_joinable);
+
 }
 
 static bool ffmpeg_hls_mux_start(void *data)
@@ -588,7 +568,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	info("Writing to path '%s'...", stream->printable_path.array);
 
 	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
-						     start_thread, stream) == 0;
+						     write_thread, stream) == 0;
 	return (stream->mux_thread_joinable);
 }
 
@@ -774,10 +754,8 @@ static bool send_audio_headers(struct ffmpeg_muxer *stream,
 		.type = OBS_ENCODER_AUDIO, .timebase_den = 1, .track_idx = idx};
 
 	obs_encoder_get_extra_data(aencoder, &packet.data, &packet.size);
-	if (stream->threading_buffer)
-		write_packet_to_array(stream, &packet);
-	else	
-		write_packet(stream, &packet);
+	/* call write_packet because we are sending a header packet */
+	write_packet(stream, &packet);
 }
 
 static bool send_video_headers(struct ffmpeg_muxer *stream)
@@ -788,10 +766,8 @@ static bool send_video_headers(struct ffmpeg_muxer *stream)
 					.timebase_den = 1};
 
 	obs_encoder_get_extra_data(vencoder, &packet.data, &packet.size);
-	if (stream->threading_buffer)
-		write_packet_to_array(stream, &packet);
-	else	
-		write_packet(stream, &packet);
+	/* simply call write_packet because we are sending a header */
+	write_packet(stream, &packet);
 }
 
 static bool send_headers(struct ffmpeg_muxer *stream)
