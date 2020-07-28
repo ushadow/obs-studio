@@ -578,6 +578,7 @@ static bool ffmpeg_hls_mux_start(void *data)
 	return (stream->mux_thread_joinable);
 }
 
+<<<<<<< HEAD
 static int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	printf("\nIN PURE DEACTIVATE\n");
@@ -626,6 +627,8 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 	return ret;
 }
 
+=======
+>>>>>>> 39e28f9f... obs-ffmpeg: Start fixing deactivate
 static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	printf("\nIN PURE DEACTIVATE\n");
@@ -673,7 +676,6 @@ static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 
 	return ret;
 }
-
 
 static void ffmpeg_mux_stop(void *data, uint64_t ts)
 {
@@ -757,7 +759,7 @@ static bool send_audio_headers(struct ffmpeg_muxer *stream,
 		.type = OBS_ENCODER_AUDIO, .timebase_den = 1, .track_idx = idx};
 
 	obs_encoder_get_extra_data(aencoder, &packet.data, &packet.size);
-	/* call write_packet because we are sending a header packet */
+	/* simply call write_packet because we are sending a header packet */
 	write_packet(stream, &packet);
 }
 
@@ -1017,6 +1019,7 @@ static bool purge_front(struct ffmpeg_muxer *stream)
 		stream->cur_time = first.dts_usec;
 		stream->cur_size -= (int64_t)pkt.size;
 	}
+
 	obs_encoder_packet_release(&pkt);
 	return keyframe;
 }
