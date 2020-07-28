@@ -1354,9 +1354,8 @@ void obs_encoder_packet_release(struct encoder_packet *pkt)
 
 	if (pkt->data) {
 		long *p_refs = ((long *)pkt->data) - 1;
-		if (os_atomic_dec_long(p_refs) == 0) {
+		if (os_atomic_dec_long(p_refs) == 0)
 			bfree(p_refs);
-		}
 	}
 	memset(pkt, 0, sizeof(struct encoder_packet));
 }
