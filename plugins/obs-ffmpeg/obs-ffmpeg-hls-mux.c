@@ -138,14 +138,14 @@ static int process_packet(struct ffmpeg_muxer *stream)
 
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
-	printf("\nProcess_packet: original array num is %d\n", remaining);
+	//printf("\nProcess_packet: original array num is %d\n", remaining);
 	if (remaining) {
 		packet = &stream->mux_packets.array[0];
 		write_packet(stream, packet);
 		obs_encoder_packet_release(packet);
 		da_erase(stream->mux_packets, 0);
 	}
-	printf("Process_packet: array num after write_packet is %d\n\n", stream->mux_packets.num);
+	//printf("Process_packet: array num after write_packet is %d\n\n", stream->mux_packets.num);
 	pthread_mutex_unlock(&stream->write_mutex);
 
 	return 0;
@@ -234,7 +234,7 @@ bool ffmpeg_hls_mux_start(void *data)
 
 	info("Writing to path '%s'...", stream->path.array);
 
-	printf("\nhls_mux_start: about to create mux_thread\n");
+	//printf("\nhls_mux_start: about to create mux_thread\n");
 	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
 						     write_thread, stream) == 0;
 	return (stream->mux_thread_joinable);
@@ -244,9 +244,9 @@ bool ffmpeg_hls_mux_start(void *data)
 static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 				  struct encoder_packet *packet)
 {
-	printf("write_packet_to_array: before pushback: %d packets on array\n", stream->mux_packets.num);
+	//printf("write_packet_to_array: before pushback: %d packets on array\n", stream->mux_packets.num);
 	da_push_back(stream->mux_packets, packet);
-	printf("write_packet_to_array: after pushback: %d packets on array\n", stream->mux_packets.num);
+	//printf("write_packet_to_array: after pushback: %d packets on array\n", stream->mux_packets.num);
 	return true;
 }
 
@@ -323,9 +323,9 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 
 	if (buffer_duration_usec > drop_threshold) {
         printf("\n******************************************************\n");
-        printf("check_to_drop_frames: threshold exceeded\n");
+        //printf("check_to_drop_frames: threshold exceeded\n");
 		drop_frames(stream, priority);
-        printf("check_to_drop_frames: after drop_frames called\n");
+        //printf("check_to_drop_frames: after drop_frames called\n");
         printf("******************************************************\n");
 	}
 }
@@ -335,7 +335,7 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 {
 	check_to_drop_frames(stream, false);
 	check_to_drop_frames(stream, true);
-	printf("\nadd_video_packet: after check_to_drop_frames called twice\n");
+	//printf("\nadd_video_packet: after check_to_drop_frames called twice\n");
 
 	/* if currently dropping frames, drop packets until it reaches the
 	 * desired priority */
