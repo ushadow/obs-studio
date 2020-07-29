@@ -25,8 +25,7 @@
 #include <util/circlebuf.h>
 #include <util/threading.h>
 #include "ffmpeg-mux/ffmpeg-mux.h"
-
-#include "congestion-control.h"
+#include "obs-ffmpeg-hls-mux.h"
 
 #ifdef _WIN32
 #include "util/windows/win-version.h"
@@ -94,12 +93,6 @@ static const char *ffmpeg_mpegts_mux_getname(void *type)
 {
 	UNUSED_PARAMETER(type);
 	return obs_module_text("FFmpegMpegtsMuxer");
-}
-
-static const char *ffmpeg_hls_mux_getname(void *type)
-{
-	UNUSED_PARAMETER(type);
-	return obs_module_text("FFmpegHlsMuxer");
 }
 
 static inline void replay_buffer_clear(struct ffmpeg_muxer *stream)
@@ -185,39 +178,6 @@ static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
 
 	UNUSED_PARAMETER(settings);
 	return stream;
-}
-
-static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
-{
-	printf("ffmpeg_hls_mux_create: entered\n");
-	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
-	pthread_mutex_init_value(&stream->write_mutex);
-	stream->output = output;
-
-	/* init mutex, semaphore and event */
-	if (pthread_mutex_init(&stream->write_mutex, NULL) != 0)
-		goto fail;
-	if (os_event_init(&stream->stop_event, OS_EVENT_TYPE_AUTO) != 0)
-		goto fail;
-	if (os_sem_init(&stream->write_sem, 0) != 0)
-		goto fail;
-
-	// is this necessary for hls specifically 
-	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
-		stream->is_network = true;
-
-	os_atomic_set_bool(&stream->threading_buffer, true);
-	stream->dropped_frames = 0;
-	stream->min_priority = 0;
-
-	UNUSED_PARAMETER(settings);
-	return stream;
-
-fail:
-	pthread_mutex_destroy(&stream->write_mutex);
-	os_event_destroy(stream->stop_event);
-	bfree(stream);
-	return NULL;
 }
 
 #ifdef _WIN32
@@ -814,34 +774,12 @@ static bool send_headers(struct ffmpeg_muxer *stream)
 	return true;
 }
 
-static bool add_video_packet(struct ffmpeg_muxer *stream,
-			     struct encoder_packet *packet)
-{
-	check_to_drop_frames(stream, false);
-	check_to_drop_frames(stream, true);
-	//printf("add_video_packet: after check_to_drop_frames called twice\n");
-
-	/* if currently dropping frames, drop packets until it reaches the
-	 * desired priority */
-	if (packet->drop_priority < stream->min_priority) {
-		stream->dropped_frames++;
-		return false;
-	} else {
-		stream->min_priority = 0;
-	}
-
-	stream->last_dts_usec = packet->dts_usec;
-	return write_packet_to_array(stream, packet);
-}
-
 static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
-	//printf("\nffmpeg_mux_data: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
-	if (!active(stream)) {
+	if (!active(stream))
 		return;
-	}
 
 	/* encoder failure */
 	if (!packet) {
@@ -852,10 +790,11 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 	if (!stream->sent_headers) {
 		if (!send_headers(stream))
 			return;
+
 		stream->sent_headers = true;
 	}
 
-	if (stopping(stream)) {	
+	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			deactivate(stream, 0);
 			return;
@@ -939,7 +878,7 @@ struct obs_output_info ffmpeg_hls_muxer = {
 	.destroy = ffmpeg_hls_mux_destroy,
 	.start = ffmpeg_hls_mux_start,
 	.stop = ffmpeg_mux_stop,
-	.encoded_packet = ffmpeg_mux_data,
+	.encoded_packet = ffmpeg_hls_mux_data,
 	.get_total_bytes = ffmpeg_mux_total_bytes,
 	.get_properties = ffmpeg_mux_properties,
 	.get_connect_time_ms = ffmpeg_mpegts_mux_connect_time,

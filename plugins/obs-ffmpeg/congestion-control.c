@@ -32,6 +32,7 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 			num_frames_dropped++;
 			obs_encoder_packet_release(packet);
             da_erase_item(stream->mux_packets, packet);
+            stream->dropped_frames++;
             i--;
 		}
         i++;
@@ -93,3 +94,34 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 	}
 }
 
+static const char *ffmpeg_hls_mux_getname(void *type)
+{
+	UNUSED_PARAMETER(type);
+	return obs_module_text("FFmpegHlsMuxer");
+}
+
+static void ffmpeg_hls_mux_destroy(void *data)
+{
+	printf("ffmpeg_hls_mux_destroy: entered\n");
+	struct ffmpeg_muxer *stream = data;
+
+	if (stream) {
+		if (stream->mux_thread_joinable)
+			pthread_join(stream->mux_thread, NULL);
+
+		if (stream->active) {
+			// we get leaks when deactivate not called but destroy is and stream
+			// isnt active, ask what to do at meeting
+			hls_deactivate(stream, 0);
+		}
+
+		pthread_mutex_destroy(&stream->write_mutex);
+		os_sem_destroy(stream->write_sem);
+		os_event_destroy(stream->stop_event);
+
+		os_process_pipe_destroy(stream->pipe);
+		dstr_free(&stream->path);
+		dstr_free(&stream->muxer_settings);
+		bfree(data);
+	}
+}
