@@ -414,7 +414,9 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 	struct encoder_packet pkt;
 	obs_encoder_packet_ref(&pkt, packet);
 	pthread_mutex_lock(&stream->write_mutex);
+	printf("write_packet_to_array: before pushback: %d packets on array\n", stream->mux_packets.num);
 	da_push_back(stream->mux_packets, &pkt);
+	printf("write_packet_to_array: after pushback: %d packets on array\n", stream->mux_packets.num);
 	pthread_mutex_unlock(&stream->write_mutex);
 	os_sem_post(stream->write_sem);
 	return true;
@@ -430,12 +432,14 @@ static int process_packet(struct ffmpeg_muxer *stream)
 
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
+	printf("\nProcess_packet: original array num is %d\n", remaining);
 	if (remaining) {
 		packet = &stream->mux_packets.array[0];
 		write_packet(stream, packet);
 		obs_encoder_packet_release(packet);
 		da_erase(stream->mux_packets, 0);
 	}
+	printf("Process_packet: array num after write_packet is %d\n\n", stream->mux_packets.num);
 	pthread_mutex_unlock(&stream->write_mutex);
 
 	return 0;
@@ -733,6 +737,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 static bool write_packet(struct ffmpeg_muxer *stream,
 			 struct encoder_packet *packet)
 {
+	//printf("write_packet: entered\n");	
 	bool is_video = packet->type == OBS_ENCODER_VIDEO;
 	size_t ret;
 
@@ -814,6 +819,7 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 {
 	check_to_drop_frames(stream, false);
 	check_to_drop_frames(stream, true);
+	//printf("add_video_packet: after check_to_drop_frames called twice\n");
 
 	/* if currently dropping frames, drop packets until it reaches the
 	 * desired priority */

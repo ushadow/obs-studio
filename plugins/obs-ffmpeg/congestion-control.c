@@ -17,10 +17,10 @@ int hls_stream_dropped_frames(void *data)
 static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 {
 	int num_frames_dropped = 0;
+    int i = 0;
     //printf("\ndrop_frames: entered\n");
-    pthread_mutex_lock(&stream->write_mutex);
     printf("\ndrop_frames: number of frames in array: %d\n", stream->mux_packets.num);
-	for (size_t i = 0; i < stream->mux_packets.num; i++) {
+	while (i < stream->mux_packets.num) {
         // is this safe w.r.t runtime // 
 		struct encoder_packet* packet;
         packet = &stream->mux_packets.array[i];
@@ -32,9 +32,11 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 			num_frames_dropped++;
 			obs_encoder_packet_release(packet);
             da_erase_item(stream->mux_packets, packet);
+            i--;
 		}
+        i++;
 	}
-    pthread_mutex_unlock(&stream->write_mutex);
+    printf("drop_frames: number of frames in array after frames dropped: %d\n", stream->mux_packets.num);
 
 	if (stream->min_priority < highest_priority)
 		stream->min_priority = highest_priority;
@@ -49,7 +51,6 @@ static bool find_first_video_packet(struct ffmpeg_muxer *stream,
 				    struct encoder_packet *first)
 {
     //printf("\nfind_first_video_packet: entered\n");
-    pthread_mutex_lock(&stream->write_mutex);
     //printf("\nfind_first_video_packet: grabbed mutex\n");
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
         //printf("find_first_video_packet: one iteration of forloop\n");
@@ -57,12 +58,10 @@ static bool find_first_video_packet(struct ffmpeg_muxer *stream,
 			&stream->mux_packets.array[i];
 		if (cur->type == OBS_ENCODER_VIDEO && !cur->keyframe) {
 			*first = *cur;
-            pthread_mutex_unlock(&stream->write_mutex);
 			return true;
 		}
 	}
     //printf("find_first_video_packet: about to unlock mutex\n");
-    pthread_mutex_unlock(&stream->write_mutex);
 	return false;
 }
 
@@ -86,9 +85,11 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 	buffer_duration_usec = stream->last_dts_usec - first.dts_usec;
 
 	if (buffer_duration_usec > drop_threshold) {
-        printf("\ncheck_to_drop_frames: threshold exceeded\n");
+        printf("\n******************************************************\n");
+        printf("check_to_drop_frames: threshold exceeded\n");
 		drop_frames(stream, priority);
         printf("check_to_drop_frames: after drop_frames called\n");
+        printf("******************************************************\n");
 	}
 }
 
