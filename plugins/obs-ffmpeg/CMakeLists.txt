@@ -22,7 +22,7 @@ set(obs-ffmpeg_config_HEADERS
 set(obs-ffmpeg_HEADERS
 	obs-ffmpeg-formats.h
 	obs-ffmpeg-compat.h
-	obs-ffmpeg-mux.h)
+	obs-ffmpeg-hls-mux.h)
 
 set(obs-ffmpeg_SOURCES
 	obs-ffmpeg.c
@@ -30,6 +30,7 @@ set(obs-ffmpeg_SOURCES
 	obs-ffmpeg-nvenc.c
 	obs-ffmpeg-output.c
 	obs-ffmpeg-mux.c
+	obs-ffmpeg-hls-mux.c
 	obs-ffmpeg-source.c)
 
 if(UNIX AND NOT APPLE)
