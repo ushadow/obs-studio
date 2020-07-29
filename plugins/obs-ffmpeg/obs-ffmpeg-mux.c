@@ -25,6 +25,7 @@
 #include <util/circlebuf.h>
 #include <util/threading.h>
 #include "ffmpeg-mux/ffmpeg-mux.h"
+#include "obs-ffmpeg-mux.h"
 #include "obs-ffmpeg-hls-mux.h"
 
 #ifdef _WIN32
@@ -191,12 +192,12 @@ static inline bool capturing(struct ffmpeg_muxer *stream)
 	return os_atomic_load_bool(&stream->capturing);
 }
 
-static inline bool stopping(struct ffmpeg_muxer *stream)
+bool stopping(struct ffmpeg_muxer *stream)
 {
 	return os_atomic_load_bool(&stream->stopping);
 }
 
-static inline bool active(struct ffmpeg_muxer *stream)
+bool active(struct ffmpeg_muxer *stream)
 {
 	return os_atomic_load_bool(&stream->active);
 }
@@ -338,7 +339,7 @@ static void build_command_line(struct ffmpeg_muxer *stream, struct dstr *cmd,
 	add_muxer_params(cmd, stream);
 }
 
-static inline void start_pipe(struct ffmpeg_muxer *stream, const char *path)
+void start_pipe(struct ffmpeg_muxer *stream, const char *path)
 {
 	struct dstr cmd;
 	build_command_line(stream, &cmd, path);
@@ -694,7 +695,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 	os_atomic_set_bool(&stream->capturing, false);
 }
 
-static bool write_packet(struct ffmpeg_muxer *stream,
+bool write_packet(struct ffmpeg_muxer *stream,
 			 struct encoder_packet *packet)
 {
 	//printf("write_packet: entered\n");	
@@ -752,7 +753,7 @@ static bool send_video_headers(struct ffmpeg_muxer *stream)
 	return write_packet(stream, &packet);
 }
 
-static bool send_headers(struct ffmpeg_muxer *stream)
+bool send_headers(struct ffmpeg_muxer *stream)
 {
 	obs_encoder_t *aencoder;
 	size_t idx = 0;

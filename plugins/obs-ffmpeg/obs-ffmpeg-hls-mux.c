@@ -7,6 +7,7 @@
 #include <util/threading.h>
 
 #include "obs-ffmpeg-mux.h"
+#include "obs-ffmpeg-hls-mux.h"
 
 #define do_log(level, format, ...)                  \
 	blog(level, "[ffmpeg muxer: '%s'] " format, \
@@ -15,19 +16,19 @@
 #define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
 #define info(format, ...) do_log(LOG_INFO, format, ##__VA_ARGS__)
 
-static const char *ffmpeg_hls_mux_getname(void *type)
+const char *ffmpeg_hls_mux_getname(void *type)
 {
 	UNUSED_PARAMETER(type);
 	return obs_module_text("FFmpegHlsMuxer");
 }
 
-static int hls_stream_dropped_frames(void *data)
+int hls_stream_dropped_frames(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 	return stream->dropped_frames;
 }
 
-static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
+int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	printf("hls_deactivate: entered\n");
 	int ret = -1;
@@ -71,7 +72,7 @@ static int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 	return ret;
 }
 
-static void ffmpeg_hls_mux_destroy(void *data)
+void ffmpeg_hls_mux_destroy(void *data)
 {
 	printf("ffmpeg_hls_mux_destroy: entered\n");
 	struct ffmpeg_muxer *stream = data;
@@ -97,7 +98,7 @@ static void ffmpeg_hls_mux_destroy(void *data)
 	}
 }
 
-static void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
+void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 {
 	printf("ffmpeg_hls_mux_create: entered\n");
 	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
@@ -178,7 +179,7 @@ static void *write_thread(void *data)
 	return NULL;
 }
 
-static bool ffmpeg_hls_mux_start(void *data)
+bool ffmpeg_hls_mux_start(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 	obs_service_t *service;
@@ -350,7 +351,7 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 	return write_packet_to_array(stream, packet);
 }
 
-static void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
+void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 {
 	//printf("\nffmpeg_mux_data: entered\n");
 	struct ffmpeg_muxer *stream = data;
