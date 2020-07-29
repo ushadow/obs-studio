@@ -752,6 +752,7 @@ static bool write_packet(struct ffmpeg_muxer *stream,
 		return false;
 	}
 
+	//printf("write_packet: writing data to pipe\n");
 	ret = os_process_pipe_write(stream->pipe, packet->data, packet->size);
 	if (ret != packet->size) {
 		warn("os_process_pipe_write for packet data failed");
@@ -808,9 +809,28 @@ static bool send_headers(struct ffmpeg_muxer *stream)
 	return true;
 }
 
+static bool add_video_packet(struct ffmpeg_muxer *stream,
+			     struct encoder_packet *packet)
+{
+	check_to_drop_frames(stream, false);
+	check_to_drop_frames(stream, true);
+
+	/* if currently dropping frames, drop packets until it reaches the
+	 * desired priority */
+	if (packet->drop_priority < stream->min_priority) {
+		stream->dropped_frames++;
+		return false;
+	} else {
+		stream->min_priority = 0;
+	}
+
+	stream->last_dts_usec = packet->dts_usec;
+	return write_packet_to_array(stream, packet);
+}
+
 static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 {
-	printf("\nffmpeg_mux_data: entered\n");
+	//printf("\nffmpeg_mux_data: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (!active(stream)) {
