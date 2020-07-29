@@ -39,3 +39,14 @@ struct ffmpeg_muxer {
 	int min_priority;
 	int64_t last_dts_usec;
 };
+
+bool stopping(struct ffmpeg_muxer *stream);
+
+bool active(struct ffmpeg_muxer *stream);
+
+void start_pipe(struct ffmpeg_muxer *stream, const char *path);
+
+bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet);
+
+bool send_headers(struct ffmpeg_muxer *stream);
+

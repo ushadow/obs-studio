@@ -8,6 +8,13 @@
 
 #include "obs-ffmpeg-mux.h"
 
+#define do_log(level, format, ...)                  \
+	blog(level, "[ffmpeg muxer: '%s'] " format, \
+	     obs_output_get_name(stream->output), ##__VA_ARGS__)
+
+#define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
+#define info(format, ...) do_log(LOG_INFO, format, ##__VA_ARGS__)
+
 static const char *ffmpeg_hls_mux_getname(void *type)
 {
 	UNUSED_PARAMETER(type);
@@ -237,7 +244,7 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 				  struct encoder_packet *packet)
 {
 	printf("write_packet_to_array: before pushback: %d packets on array\n", stream->mux_packets.num);
-	da_push_back(stream->mux_packets, &pkt);
+	da_push_back(stream->mux_packets, packet);
 	printf("write_packet_to_array: after pushback: %d packets on array\n", stream->mux_packets.num);
 	return true;
 }
@@ -346,8 +353,9 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 static void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 {
 	//printf("\nffmpeg_mux_data: entered\n");
-    struct encoder_packet new_packet;
 	struct ffmpeg_muxer *stream = data;
+    struct encoder_packet new_packet;
+    bool added_packet = false;
 
 	if (!active(stream)) {
 		return;
@@ -378,7 +386,7 @@ static void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 		obs_encoder_packet_ref(&new_packet, packet);
 	}
 
-	pthread_mutex_lock(&stream->packets_mutex);
+	pthread_mutex_lock(&stream->write_mutex);
 
 	if (stream->active) {
 		added_packet = (packet->type == OBS_ENCODER_VIDEO)
@@ -386,10 +394,10 @@ static void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 				       : write_packet_to_array(stream, &new_packet);
 	}
 
-	pthread_mutex_unlock(&stream->packets_mutex);
+	pthread_mutex_unlock(&stream->write_mutex);
 
 	if (added_packet)
-		os_sem_post(stream->send_sem);
+		os_sem_post(stream->write_sem);
 	else
 		obs_encoder_packet_release(&new_packet);
 }
