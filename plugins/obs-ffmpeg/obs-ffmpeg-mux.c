@@ -356,10 +356,7 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->active, false);
 		os_atomic_set_bool(&stream->sent_headers, false);
 
-		info("Output of file '%s' stopped",
-		     dstr_is_empty(&stream->printable_path)
-			     ? stream->path.array
-			     : stream->printable_path.array);
+		info("Output of file '%s' stopped", stream->path.array);
 	}
 
 	if (code) {
@@ -400,7 +397,8 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 		obs_output_set_last_error(stream->output, error);
 	}
 
-	ret = stream->threading_buffer ? hls_deactivate(stream, 0) : deactivate(stream, 0);
+	ret = stream->threading_buffer ? hls_deactivate(stream, 0)
+				       : deactivate(stream, 0);
 
 	switch (ret) {
 	case FFM_UNSUPPORTED:
@@ -497,7 +495,9 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
-		stream->threading_buffer ? hls_deactivate(stream, OBS_OUTPUT_ENCODE_ERROR) : deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
+		stream->threading_buffer
+			? hls_deactivate(stream, OBS_OUTPUT_ENCODE_ERROR)
+			: deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
 
@@ -510,7 +510,8 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			stream->threading_buffer ? hls_deactivate(stream, 0) : deactivate(stream, 0);
+			stream->threading_buffer ? hls_deactivate(stream, 0)
+						 : deactivate(stream, 0);
 			return;
 		}
 	}
@@ -796,9 +797,7 @@ static void *replay_buffer_mux_thread(void *data)
 
 	if (!send_headers(stream)) {
 		warn("Could not write headers for file '%s'",
-		     dstr_is_empty(&stream->printable_path)
-			     ? stream->path.array
-			     : stream->printable_path.array);
+		     stream->path.array);
 		goto error;
 	}
 
@@ -808,10 +807,7 @@ static void *replay_buffer_mux_thread(void *data)
 		obs_encoder_packet_release(pkt);
 	}
 
-	info("Wrote replay buffer to '%s'",
-	     dstr_is_empty(&stream->printable_path)
-		     ? stream->path.array
-		     : stream->printable_path.array);
+	info("Wrote replay buffer to '%s'", stream->path.array);
 
 error:
 	os_process_pipe_destroy(stream->pipe);

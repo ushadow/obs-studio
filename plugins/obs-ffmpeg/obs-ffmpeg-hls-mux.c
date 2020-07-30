@@ -39,7 +39,8 @@ int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->active, false);
 		os_atomic_set_bool(&stream->sent_headers, false);
 
-		info("Output of file '%s' stopped", stream->path.array);
+		info("Output of file '%s' stopped",
+		     stream->printable_path.array);
 	}
 
 	if (code) {
@@ -57,8 +58,8 @@ int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 		stream->mux_thread_joinable = false;
 	}
 
-	struct encoder_packet* packet;
-	size_t i; 
+	struct encoder_packet *packet;
+	size_t i;
 
 	pthread_mutex_lock(&stream->write_mutex);
 	for (i = 0; i < stream->mux_packets.num; i++) {
@@ -87,6 +88,8 @@ void ffmpeg_hls_mux_destroy(void *data)
 
 		os_process_pipe_destroy(stream->pipe);
 		dstr_free(&stream->path);
+		dstr_free(&stream->printable_path);
+		dstr_free(&stream->stream_key);
 		dstr_free(&stream->muxer_settings);
 		bfree(data);
 	}
@@ -126,7 +129,7 @@ fail:
 
 static int process_packet(struct ffmpeg_muxer *stream)
 {
-	struct encoder_packet* packet;
+	struct encoder_packet *packet;
 	int remaining;
 
 	pthread_mutex_lock(&stream->write_mutex);
@@ -193,6 +196,7 @@ bool ffmpeg_hls_mux_start(void *data)
 		return false;
 	path_str = obs_service_get_url(service);
 	stream_key = obs_service_get_key(service);
+	dstr_copy(&stream->stream_key, stream_key);
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
 	dstr_init(&stream->muxer_settings);
@@ -225,7 +229,8 @@ bool ffmpeg_hls_mux_start(void *data)
 	stream->total_bytes = 0;
 	obs_output_begin_data_capture(stream->output, 0);
 
-	info("Writing to path '%s'...", stream->path.array);
+	dstr_copy(&stream->printable_path, path_str);
+	info("Writing to path '%s'...", stream->printable_path.array);
 
 	//printf("\nhls_mux_start: about to create mux_thread\n");
 	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
@@ -246,84 +251,88 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 {
 	int num_frames_dropped = 0;
-    int i = 0;
-    //printf("\ndrop_frames: entered\n");
-    printf("\ndrop_frames: number of frames in array: %d\n", stream->mux_packets.num);
+	int i = 0;
+	//printf("\ndrop_frames: entered\n");
+	printf("\ndrop_frames: number of frames in array: %d\n",
+	       stream->mux_packets.num);
 	while (i < stream->mux_packets.num) {
-        // is this safe w.r.t runtime // 
-		struct encoder_packet* packet;
-        packet = &stream->mux_packets.array[i];
+		// is this safe w.r.t runtime //
+		struct encoder_packet *packet;
+		packet = &stream->mux_packets.array[i];
 
 		/* do not drop audio data or video keyframes */
 		if (!(packet->type == OBS_ENCODER_AUDIO ||
-		    packet->drop_priority >= highest_priority)) {
-            printf("drop_frames: found frame to drop\n");
-			printf("drop_frames: Packet->drop_priority is %d, highest_priority is %d\n", packet->drop_priority, highest_priority);
+		      packet->drop_priority >= highest_priority)) {
+			printf("drop_frames: found frame to drop\n");
+			printf("drop_frames: Packet->drop_priority is %d, highest_priority is %d\n",
+			       packet->drop_priority, highest_priority);
 			num_frames_dropped++;
 			obs_encoder_packet_release(packet);
-            da_erase_item(stream->mux_packets, packet);
-            stream->dropped_frames++;
-            i--;
+			da_erase_item(stream->mux_packets, packet);
+			stream->dropped_frames++;
+			i--;
 		}
-        i++;
+		i++;
 	}
-    printf("drop_frames: number of frames in array after frames dropped: %d\n", stream->mux_packets.num);
+	printf("drop_frames: number of frames in array after frames dropped: %d\n",
+	       stream->mux_packets.num);
 
 	if (stream->min_priority < highest_priority) {
-		printf("drop_frames: stream->min_priority is %d\n", stream->min_priority);
-		printf("drop_frames: setting stream->min_priority to %d\n", highest_priority);
+		printf("drop_frames: stream->min_priority is %d\n",
+		       stream->min_priority);
+		printf("drop_frames: setting stream->min_priority to %d\n",
+		       highest_priority);
 		stream->min_priority = highest_priority;
 	}
 	if (!num_frames_dropped)
 		return;
 
-    printf("drop_frames: %d frames dropped\n", num_frames_dropped);
+	printf("drop_frames: %d frames dropped\n", num_frames_dropped);
 	stream->dropped_frames += num_frames_dropped;
 }
 
 static bool find_first_video_packet(struct ffmpeg_muxer *stream,
 				    struct encoder_packet *first)
 {
-    //printf("\nfind_first_video_packet: entered\n");
-    //printf("\nfind_first_video_packet: grabbed mutex\n");
+	//printf("\nfind_first_video_packet: entered\n");
+	//printf("\nfind_first_video_packet: grabbed mutex\n");
 	for (size_t i = 0; i < stream->mux_packets.num; i++) {
-        //printf("find_first_video_packet: one iteration of forloop\n");
-		struct encoder_packet *cur =
-			&stream->mux_packets.array[i];
+		//printf("find_first_video_packet: one iteration of forloop\n");
+		struct encoder_packet *cur = &stream->mux_packets.array[i];
 		if (cur->type == OBS_ENCODER_VIDEO && !cur->keyframe) {
 			*first = *cur;
 			return true;
 		}
 	}
-    //printf("find_first_video_packet: about to unlock mutex\n");
+	//printf("find_first_video_packet: about to unlock mutex\n");
 	return false;
 }
 
 void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 {
-    //printf("\ncheck_to_drop_frames: entered\n");
+	//printf("\ncheck_to_drop_frames: entered\n");
 	struct encoder_packet first;
 	int64_t buffer_duration_usec;
 	int priority = pframes ? OBS_NAL_PRIORITY_HIGHEST
 			       : OBS_NAL_PRIORITY_HIGH;
 	int64_t drop_threshold = 2 * stream->keyframes;
 
-    //printf("check_to_drop_frames: before find_first_video_packet\n");
+	//printf("check_to_drop_frames: before find_first_video_packet\n");
 	if (!find_first_video_packet(stream, &first)) {
-        //printf("check_to_drop_frames: NOT find_first_video_packet\n");
+		//printf("check_to_drop_frames: NOT find_first_video_packet\n");
 		return;
-    }
-    //printf("check_to_drop_frames: after find_first_video_packet\n");
+	}
+	//printf("check_to_drop_frames: after find_first_video_packet\n");
 	/* if the amount of time stored in the buffered packets waiting to be
 	 * sent is higher than threshold, drop frames */
 	buffer_duration_usec = stream->last_dts_usec - first.dts_usec;
 
 	if (buffer_duration_usec > drop_threshold) {
-        printf("\n******************************************************\n");
-        //printf("check_to_drop_frames: threshold exceeded\n");
+		printf("\n******************************************************\n");
+		//printf("check_to_drop_frames: threshold exceeded\n");
 		drop_frames(stream, priority);
-        //printf("check_to_drop_frames: after drop_frames called\n");
-        printf("******************************************************\n");
+		//printf("check_to_drop_frames: after drop_frames called\n");
+		printf("******************************************************\n");
 	}
 }
 
@@ -337,9 +346,11 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 	/* if currently dropping frames, drop packets until it reaches the
 	 * desired priority */
 	if (packet->drop_priority < stream->min_priority) {
-		printf("Packet drop_priority is %d, and stream->min_priority is %d\n", packet->drop_priority, stream->min_priority);
+		printf("Packet drop_priority is %d, and stream->min_priority is %d\n",
+		       packet->drop_priority, stream->min_priority);
 		stream->dropped_frames++;
-		printf("Incrementing dropped frames to: %d\n", stream->dropped_frames);
+		printf("Incrementing dropped frames to: %d\n",
+		       stream->dropped_frames);
 		return false;
 	} else {
 		stream->min_priority = 0;
@@ -353,9 +364,9 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 {
 	//printf("\nffmpeg_mux_data: entered\n");
 	struct ffmpeg_muxer *stream = data;
-    struct encoder_packet new_packet;
+	struct encoder_packet new_packet;
 	struct encoder_packet tmp_packet;
-    bool added_packet = false;
+	bool added_packet = false;
 
 	if (!active(stream)) {
 		return;
@@ -373,28 +384,29 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 		stream->sent_headers = true;
 	}
 
-	if (stopping(stream)) {	
+	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
 			hls_deactivate(stream, 0);
 			return;
 		}
 	}
 
-    if (packet->type == OBS_ENCODER_VIDEO) {
+	if (packet->type == OBS_ENCODER_VIDEO) {
 		//obs_encoder_packet_ref(&new_packet, packet);
 		//new_packet.drop_priority = 15;
 		obs_parse_avc_packet(&tmp_packet, packet);
 		packet->drop_priority = tmp_packet.priority;
 		obs_encoder_packet_release(&tmp_packet);
-	} 
+	}
 	obs_encoder_packet_ref(&new_packet, packet);
 
 	pthread_mutex_lock(&stream->write_mutex);
 
 	if (stream->active) {
-		added_packet = (packet->type == OBS_ENCODER_VIDEO)
-				       ? add_video_packet(stream, &new_packet)
-				       : write_packet_to_array(stream, &new_packet);
+		added_packet =
+			(packet->type == OBS_ENCODER_VIDEO)
+				? add_video_packet(stream, &new_packet)
+				: write_packet_to_array(stream, &new_packet);
 	}
 
 	pthread_mutex_unlock(&stream->write_mutex);
