@@ -6,6 +6,9 @@ struct ffmpeg_muxer {
 	int64_t stop_ts;
 	uint64_t total_bytes;
 	struct dstr path;
+	/* printable_path is path with any stream key information removed */
+	struct dstr printable_path;
+	struct dstr stream_key;
 	struct dstr muxer_settings;
 	bool sent_headers;
 	volatile bool active;

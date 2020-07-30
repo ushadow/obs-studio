@@ -41,49 +41,6 @@
 #define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
 #define info(format, ...) do_log(LOG_INFO, format, ##__VA_ARGS__)
 
-struct ffmpeg_muxer {
-	obs_output_t *output;
-	os_process_pipe_t *pipe;
-	int64_t stop_ts;
-	uint64_t total_bytes;
-	struct dstr path;
-	/* printable_path is path with any stream key information removed */
-	struct dstr printable_path;
-	struct dstr stream_key;
-	struct dstr muxer_settings;
-	bool sent_headers;
-	volatile bool active;
-	volatile bool stopping;
-	volatile bool capturing;
-
-	/* replay buffer */
-	struct circlebuf packets;
-	int64_t cur_size;
-	int64_t cur_time;
-	int64_t max_size;
-	int64_t max_time;
-	int64_t save_ts;
-	int keyframes;
-	obs_hotkey_id hotkey;
-
-	DARRAY(struct encoder_packet) mux_packets;
-	pthread_t mux_thread;
-	bool mux_thread_joinable;
-
-	pthread_mutex_t write_mutex;
-	os_sem_t *write_sem;
-	os_event_t *stop_event;
-
-	volatile bool muxing;
-
-	bool is_network;
-	bool threading_buffer;
-
-	int dropped_frames;
-	int min_priority;
-	int64_t last_dts_usec;
-};
-
 static const char *ffmpeg_mux_getname(void *type)
 {
 	UNUSED_PARAMETER(type);
@@ -122,9 +79,6 @@ static void ffmpeg_mux_destroy(void *data)
 		if (stream->mux_thread_joinable) {
 			pthread_join(stream->mux_thread, NULL);
 		}
-
-		if (stream->connecting)
-			pthread_join(stream->write_thread, NULL);
 
 		ffmpeg_mux_full_stop(stream);
 
@@ -337,76 +291,7 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 	obs_data_release(settings);
 }
 
-/* push back packet onto to dynamic array using locking */
-static bool write_packet_to_array(struct ffmpeg_muxer *stream,
-				  struct encoder_packet *packet)
-{
-	struct encoder_packet pkt;
-	obs_encoder_packet_ref(&pkt, packet);
-	pthread_mutex_lock(&stream->write_mutex);
-	printf("write_packet_to_array: before pushback: %d packets on array\n",
-	       stream->mux_packets.num);
-	da_push_back(stream->mux_packets, &pkt);
-	printf("write_packet_to_array: after pushback: %d packets on array\n",
-	       stream->mux_packets.num);
-	pthread_mutex_unlock(&stream->write_mutex);
-	os_sem_post(stream->write_sem);
-	return true;
-}
-
-static bool write_packet(struct ffmpeg_muxer *stream,
-			 struct encoder_packet *packet);
-
-static int process_packet(struct ffmpeg_muxer *stream)
-{
-	struct encoder_packet *packet;
-	int remaining;
-
-	pthread_mutex_lock(&stream->write_mutex);
-	remaining = stream->mux_packets.num;
-	printf("\nProcess_packet: original array num is %d\n", remaining);
-	if (remaining) {
-		packet = &stream->mux_packets.array[0];
-		write_packet(stream, packet);
-		obs_encoder_packet_release(packet);
-		da_erase(stream->mux_packets, 0);
-	}
-	printf("Process_packet: array num after write_packet is %d\n\n",
-	       stream->mux_packets.num);
-	pthread_mutex_unlock(&stream->write_mutex);
-
-	return 0;
-}
-
 static int deactivate(struct ffmpeg_muxer *stream, int code);
-
-static void *write_thread(void *data)
-{
-	printf("write_thread: entered\n");
-	struct ffmpeg_muxer *stream = data;
-	stream->active = true;
-
-	while (os_sem_wait(stream->write_sem) == 0) {
-
-		if (os_event_try(stream->stop_event) == 0)
-			break;
-
-		int ret = process_packet(stream);
-		if (ret != 0) {
-			int code = OBS_OUTPUT_ERROR;
-
-			if (ret == -ENOSPC)
-				code = OBS_OUTPUT_NO_SPACE;
-
-			obs_output_signal_stop(stream->output, code);
-			deactivate(stream, 0);
-			break;
-		}
-	}
-
-	stream->active = false;
-	return NULL;
-}
 
 static bool ffmpeg_mux_start(void *data)
 {
