@@ -495,9 +495,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
-		stream->threading_buffer
-			? hls_deactivate(stream, OBS_OUTPUT_ENCODE_ERROR)
-			: deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
+		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
 
@@ -510,8 +508,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			stream->threading_buffer ? hls_deactivate(stream, 0)
-						 : deactivate(stream, 0);
+			deactivate(stream, 0);
 			return;
 		}
 	}
