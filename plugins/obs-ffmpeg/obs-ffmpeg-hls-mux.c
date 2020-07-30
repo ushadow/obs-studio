@@ -207,7 +207,6 @@ bool ffmpeg_hls_mux_start(void *data)
 		  "http_user_agent=libobs/%s method=PUT http_persistent=1",
 		  OBS_VERSION);
 	dstr_catf(&stream->muxer_settings, " ignore_io_errors=1");
-	dstr_catf(&stream->muxer_settings, " bsf:v=h264_mp4toannexb");
 
 	vencoder = obs_output_get_video_encoder(stream->output);
 	settings = obs_encoder_get_settings(vencoder);
@@ -266,6 +265,7 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 		if (!(packet->type == OBS_ENCODER_AUDIO ||
 		    packet->drop_priority >= highest_priority)) {
             printf("drop_frames: found frame to drop\n");
+			printf("drop_frames: Packet->drop_priority is %d, highest_priority is %d\n", packet->drop_priority, highest_priority);
 			num_frames_dropped++;
 			obs_encoder_packet_release(packet);
             da_erase_item(stream->mux_packets, packet);
@@ -276,8 +276,11 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 	}
     printf("drop_frames: number of frames in array after frames dropped: %d\n", stream->mux_packets.num);
 
-	if (stream->min_priority < highest_priority)
+	if (stream->min_priority < highest_priority) {
+		printf("drop_frames: stream->min_priority is %d\n", stream->min_priority);
+		printf("drop_frames: setting stream->min_priority to %d\n", highest_priority);
 		stream->min_priority = highest_priority;
+	}
 	if (!num_frames_dropped)
 		return;
 
@@ -341,6 +344,7 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 	/* if currently dropping frames, drop packets until it reaches the
 	 * desired priority */
 	if (packet->drop_priority < stream->min_priority) {
+		printf("Packet drop_priority is %d, and stream->min_priority is %d\n", packet->drop_priority, stream->min_priority);
 		stream->dropped_frames++;
 		printf("Incrementing dropped frames to: %d\n", stream->dropped_frames);
 		return false;
