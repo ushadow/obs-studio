@@ -286,8 +286,6 @@ static void set_file_not_readable_error(struct ffmpeg_muxer *stream,
 	obs_data_release(settings);
 }
 
-static int deactivate(struct ffmpeg_muxer *stream, int code);
-
 static bool ffmpeg_mux_start(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
@@ -371,26 +369,6 @@ static int deactivate(struct ffmpeg_muxer *stream, int code)
 	}
 
 	os_atomic_set_bool(&stream->stopping, false);
-	printf("Deactivate: check if mux_thread_joinable set\n");
-	if (stream->mux_thread_joinable) {
-		os_event_signal(stream->stop_event);
-		os_sem_post(stream->write_sem);
-		pthread_join(stream->mux_thread, NULL);
-		stream->mux_thread_joinable = false;
-	}
-
-	struct encoder_packet *packet;
-
-	pthread_mutex_lock(&stream->write_mutex);
-	// IS THIS A SAFE OPERATION //
-	while (stream->mux_packets.num) {
-		packet = &stream->mux_packets.array[0];
-		obs_encoder_packet_release(packet);
-		da_erase(stream->mux_packets, 0);
-	}
-	da_free(stream->mux_packets);
-	pthread_mutex_unlock(&stream->write_mutex);
-
 	return ret;
 }
 
