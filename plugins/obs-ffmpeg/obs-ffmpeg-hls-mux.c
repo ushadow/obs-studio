@@ -30,7 +30,6 @@ int hls_stream_dropped_frames(void *data)
 
 int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
-	printf("hls_deactivate: entered\n");
 	int ret = -1;
 
 	if (active(stream)) {
@@ -74,7 +73,6 @@ int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 
 void ffmpeg_hls_mux_destroy(void *data)
 {
-	printf("ffmpeg_hls_mux_destroy: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
@@ -96,7 +94,6 @@ void ffmpeg_hls_mux_destroy(void *data)
 
 void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 {
-	printf("ffmpeg_hls_mux_create: entered\n");
 	struct ffmpeg_muxer *stream = bzalloc(sizeof(*stream));
 	pthread_mutex_init_value(&stream->write_mutex);
 	stream->output = output;
@@ -109,7 +106,6 @@ void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 	if (os_sem_init(&stream->write_sem, 0) != 0)
 		goto fail;
 
-	// is this necessary for hls specifically 
 	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
 		stream->is_network = true;
 
@@ -122,6 +118,7 @@ void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 
 fail:
 	pthread_mutex_destroy(&stream->write_mutex);
+	os_sem_destroy(stream->write_sem);
 	os_event_destroy(stream->stop_event);
 	bfree(stream);
 	return NULL;
