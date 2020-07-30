@@ -207,6 +207,7 @@ bool ffmpeg_hls_mux_start(void *data)
 		  "http_user_agent=libobs/%s method=PUT http_persistent=1",
 		  OBS_VERSION);
 	dstr_catf(&stream->muxer_settings, " ignore_io_errors=1");
+	dstr_catf(&stream->muxer_settings, " bsf:v=h264_mp4toannexb");
 
 	vencoder = obs_output_get_video_encoder(stream->output);
 	settings = obs_encoder_get_settings(vencoder);
