@@ -74,22 +74,17 @@ static void ffmpeg_mux_destroy(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 
-	if (stream) {
-		replay_buffer_clear(stream);
-		if (stream->mux_thread_joinable) {
-			pthread_join(stream->mux_thread, NULL);
-		}
+	replay_buffer_clear(stream);
+	if (stream->mux_thread_joinable)
+		pthread_join(stream->mux_thread, NULL);
+	da_free(stream->mux_packets);
 
-		ffmpeg_mux_full_stop(stream);
-
-		os_process_pipe_destroy(stream->pipe);
-		dstr_free(&stream->path);
-		dstr_free(&stream->printable_path);
-		dstr_free(&stream->stream_key);
-		dstr_free(&stream->muxer_settings);
-		pthread_mutex_destroy(&output->write_mutex);
-		bfree(stream);
-	}
+	os_process_pipe_destroy(stream->pipe);
+	dstr_free(&stream->path);
+	dstr_free(&stream->printable_path);
+	dstr_free(&stream->stream_key);
+	dstr_free(&stream->muxer_settings);
+	bfree(stream);
 }
 
 static void *ffmpeg_mux_create(obs_data_t *settings, obs_output_t *output)
@@ -503,9 +498,8 @@ bool send_headers(struct ffmpeg_muxer *stream)
 	obs_encoder_t *aencoder;
 	size_t idx = 0;
 
-	if (!send_video_headers(stream)) {
+	if (!send_video_headers(stream))
 		return false;
-	}
 
 	do {
 		aencoder = obs_output_get_audio_encoder(stream->output, idx);
