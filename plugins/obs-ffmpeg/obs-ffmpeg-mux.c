@@ -400,7 +400,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 		obs_output_set_last_error(stream->output, error);
 	}
 
-	ret = deactivate(stream, 0);
+	ret = stream->threading_buffer ? hls_deactivate(stream, 0) : deactivate(stream, 0);
 
 	switch (ret) {
 	case FFM_UNSUPPORTED:
@@ -501,7 +501,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
-		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
+		stream->threading_buffer ? hls_deactivate(stream, OBS_OUTPUT_ENCODE_ERROR) : deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
 
@@ -514,7 +514,7 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			deactivate(stream, 0);
+			stream->threading_buffer ? hls_deactivate(stream, 0) : deactivate(stream, 0);
 			return;
 		}
 	}
