@@ -81,11 +81,7 @@ void ffmpeg_hls_mux_destroy(void *data)
 		if (stream->mux_thread_joinable)
 			pthread_join(stream->mux_thread, NULL);
 
-		if (stream->active) {
-			// we get leaks when deactivate not called but destroy is and stream
-			// isnt active, ask what to do at meeting
-			hls_deactivate(stream, 0);
-		}
+		hls_deactivate(stream, 0);
 
 		pthread_mutex_destroy(&stream->write_mutex);
 		os_sem_destroy(stream->write_sem);
