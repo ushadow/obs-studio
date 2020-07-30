@@ -416,7 +416,6 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 
 bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet)
 {
-	//printf("write_packet: entered\n");
 	bool is_video = packet->type == OBS_ENCODER_VIDEO;
 	size_t ret;
 
@@ -436,7 +435,6 @@ bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet)
 		return false;
 	}
 
-	//printf("write_packet: writing data to pipe\n");
 	ret = os_process_pipe_write(stream->pipe, packet->data, packet->size);
 	if (ret != packet->size) {
 		warn("os_process_pipe_write for packet data failed");
@@ -455,7 +453,6 @@ static bool send_audio_headers(struct ffmpeg_muxer *stream,
 		.type = OBS_ENCODER_AUDIO, .timebase_den = 1, .track_idx = idx};
 
 	obs_encoder_get_extra_data(aencoder, &packet.data, &packet.size);
-	/* simply call write_packet because we are sending a header packet */
 	return write_packet(stream, &packet);
 }
 
@@ -467,7 +464,6 @@ static bool send_video_headers(struct ffmpeg_muxer *stream)
 					.timebase_den = 1};
 
 	obs_encoder_get_extra_data(vencoder, &packet.data, &packet.size);
-	/* simply call write_packet because we are sending a header */
 	return write_packet(stream, &packet);
 }
 
