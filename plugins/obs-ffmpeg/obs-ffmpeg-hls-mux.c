@@ -361,6 +361,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	//printf("\nffmpeg_mux_data: entered\n");
 	struct ffmpeg_muxer *stream = data;
     struct encoder_packet new_packet;
+	struct encoder_packet tmp_packet;
     bool added_packet = false;
 
 	if (!active(stream)) {
@@ -387,10 +388,13 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	}
 
     if (packet->type == OBS_ENCODER_VIDEO) {
-		obs_parse_avc_packet(&new_packet, packet);
-	} else {
-		obs_encoder_packet_ref(&new_packet, packet);
-	}
+		//obs_encoder_packet_ref(&new_packet, packet);
+		//new_packet.drop_priority = 15;
+		obs_parse_avc_packet(&tmp_packet, packet);
+		packet->drop_priority = tmp_packet.priority;
+		obs_encoder_packet_release(&tmp_packet);
+	} 
+	obs_encoder_packet_ref(&new_packet, packet);
 
 	pthread_mutex_lock(&stream->write_mutex);
 
@@ -404,6 +408,8 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	if (added_packet)
 		os_sem_post(stream->write_sem);
-	else
+	else {
+		printf("\nffmpeg_hls_mux_data: BEFORE OBS_ENCODER_PACKET_RELEASE\n");
 		obs_encoder_packet_release(&new_packet);
+	}
 }
