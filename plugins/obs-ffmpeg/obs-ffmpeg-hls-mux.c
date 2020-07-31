@@ -112,10 +112,6 @@ void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
 		stream->is_network = true;
 
-	os_atomic_set_bool(&stream->threading_buffer, true);
-	stream->dropped_frames = 0;
-	stream->min_priority = 0;
-
 	UNUSED_PARAMETER(settings);
 	return stream;
 
@@ -223,7 +219,11 @@ bool ffmpeg_hls_mux_start(void *data)
 	/* write headers and start capture */
 	os_atomic_set_bool(&stream->active, true);
 	os_atomic_set_bool(&stream->capturing, true);
+	os_atomic_set_bool(&stream->threading_buffer, true);
 	stream->total_bytes = 0;
+	stream->dropped_frames = 0;
+	stream->min_priority = 0;
+
 	obs_output_begin_data_capture(stream->output, 0);
 
 	dstr_copy(&stream->printable_path, path_str);
@@ -291,7 +291,7 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 			       : OBS_NAL_PRIORITY_HIGH;
 	int64_t drop_threshold = 2 * stream->keyframes;
 
-	if (!find_first_video_packet(stream, &first)) 
+	if (!find_first_video_packet(stream, &first))
 		return;
 
 	buffer_duration_usec = stream->last_dts_usec - first.dts_usec;
@@ -350,8 +350,6 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	}
 
 	if (packet->type == OBS_ENCODER_VIDEO) {
-		//obs_encoder_packet_ref(&new_packet, packet);
-		//new_packet.drop_priority = 15;
 		obs_parse_avc_packet(&tmp_packet, packet);
 		packet->drop_priority = tmp_packet.priority;
 		obs_encoder_packet_release(&tmp_packet);
