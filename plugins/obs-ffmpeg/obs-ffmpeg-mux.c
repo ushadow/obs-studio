@@ -397,8 +397,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 		obs_output_set_last_error(stream->output, error);
 	}
 
-	ret = stream->threading_buffer ? hls_deactivate(stream, 0)
-				       : deactivate(stream, 0);
+	ret = deactivate(stream, 0);
 
 	switch (ret) {
 	case FFM_UNSUPPORTED:
