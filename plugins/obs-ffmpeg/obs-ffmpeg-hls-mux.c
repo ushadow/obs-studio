@@ -1,5 +1,6 @@
 #include "obs-ffmpeg-hls-mux.h"
 
+#include <math.h>
 #include <obs-avc.h>
 #include <obs-module.h>
 #include <util/circlebuf.h>
@@ -31,6 +32,8 @@ int hls_stream_dropped_frames(void *data)
 
 bool hls_deactivate(struct ffmpeg_muxer *stream)
 {
+	deactivate(stream, 0);
+
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
@@ -92,11 +95,11 @@ fail:
 	return NULL;
 }
 
-static int process_packet(struct ffmpeg_muxer *stream)
+static bool process_packet(struct ffmpeg_muxer *stream)
 {
 	struct encoder_packet *packet;
 	int remaining;
-	bool ret;
+	bool ret = true;
 
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
@@ -118,7 +121,7 @@ static void *write_thread(void *data)
 		if (os_event_try(stream->stop_event) == 0)
 			break;
 
-		int ret = process_packet(stream);
+		bool ret = process_packet(stream);
 		if (ret) {
 			int code = OBS_OUTPUT_ERROR;
 			obs_output_signal_stop(stream->output, code);
@@ -166,7 +169,9 @@ bool ffmpeg_hls_mux_start(void *data)
 	keyint_sec = obs_data_get_int(settings, "keyint_sec");
 	if (keyint_sec)
 		dstr_catf(&stream->muxer_settings, " hls_time=%d", keyint_sec);
-	stream->keyint_sec = keyint_sec;
+	if (keyint_sec > 0) {
+		stream->keyint_sec = keyint_sec;
+	}
 
 	obs_data_release(settings);
 
@@ -217,7 +222,6 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 		/* do not drop audio data or video keyframes */
 		if (!(packet->type == OBS_ENCODER_AUDIO ||
 		      packet->drop_priority >= highest_priority)) {
-			num_frames_dropped++;
 			obs_encoder_packet_release(packet);
 			da_erase_item(stream->mux_packets, packet);
 			stream->dropped_frames++;
@@ -229,10 +233,6 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 	if (stream->min_priority < highest_priority) {
 		stream->min_priority = highest_priority;
 	}
-	if (!num_frames_dropped)
-		return;
-
-	stream->dropped_frames += num_frames_dropped;
 }
 
 static bool find_first_video_packet(struct ffmpeg_muxer *stream,
@@ -261,7 +261,7 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 
 	buffer_duration_usec = stream->last_dts_usec - first.dts_usec;
 
-	if (buffer_duration_usec > drop_threshold)
+	if (buffer_duration_usec > drop_threshold * pow(10, 6))
 		drop_frames(stream, priority);
 }
 

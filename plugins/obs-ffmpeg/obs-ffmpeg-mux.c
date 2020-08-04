@@ -345,7 +345,7 @@ static bool ffmpeg_mux_start(void *data)
 	return true;
 }
 
-static int deactivate(struct ffmpeg_muxer *stream, int code)
+int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	int ret = -1;
 
