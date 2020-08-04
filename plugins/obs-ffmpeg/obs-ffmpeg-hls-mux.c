@@ -1,16 +1,17 @@
-#include <obs-module.h>
+#include "obs-ffmpeg-mux.h"
+
 #include <obs-avc.h>
+#include <obs-module.h>
 #include <util/darray.h>
 #include <util/dstr.h>
 #include <util/circlebuf.h>
 #include <util/pipe.h>
 #include <util/threading.h>
 
-#include "obs-ffmpeg-mux.h"
 #include "obs-ffmpeg-hls-mux.h"
 
-#define do_log(level, format, ...)                  \
-	blog(level, "[ffmpeg muxer: '%s'] " format, \
+#define do_log(level, format, ...)                       \
+	blog(level, "[ffmpegh hls muxer: '%s'] " format, \
 	     obs_output_get_name(stream->output), ##__VA_ARGS__)
 
 #define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
@@ -28,29 +29,8 @@ int hls_stream_dropped_frames(void *data)
 	return stream->dropped_frames;
 }
 
-int hls_deactivate(struct ffmpeg_muxer *stream, int code)
+bool hls_deactivate(struct ffmpeg_muxer *stream)
 {
-	int ret = -1;
-
-	if (active(stream)) {
-		ret = os_process_pipe_destroy(stream->pipe);
-		stream->pipe = NULL;
-
-		os_atomic_set_bool(&stream->active, false);
-		os_atomic_set_bool(&stream->sent_headers, false);
-
-		info("Output of file '%s' stopped",
-		     stream->printable_path.array);
-	}
-
-	if (code) {
-		obs_output_signal_stop(stream->output, code);
-	} else if (stopping(stream)) {
-		obs_output_end_data_capture(stream->output);
-	}
-
-	os_atomic_set_bool(&stream->stopping, false);
-
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
 		os_sem_post(stream->write_sem);
@@ -58,18 +38,16 @@ int hls_deactivate(struct ffmpeg_muxer *stream, int code)
 		stream->mux_thread_joinable = false;
 	}
 
-	struct encoder_packet *packet;
-	size_t i;
-
 	pthread_mutex_lock(&stream->write_mutex);
-	for (i = 0; i < stream->mux_packets.num; i++) {
+	for (size_t i = 0; i < stream->mux_packets.num; i++) {
+		struct encoder_packet *packet;
 		packet = &stream->mux_packets.array[i];
 		obs_encoder_packet_release(packet);
 	}
 	da_free(stream->mux_packets);
 	pthread_mutex_unlock(&stream->write_mutex);
 
-	return ret;
+	return true;
 }
 
 void ffmpeg_hls_mux_destroy(void *data)
@@ -77,9 +55,6 @@ void ffmpeg_hls_mux_destroy(void *data)
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
-		if (stream->mux_thread_joinable)
-			pthread_join(stream->mux_thread, NULL);
-
 		hls_deactivate(stream, 0);
 
 		pthread_mutex_destroy(&stream->write_mutex);
@@ -109,17 +84,11 @@ void *ffmpeg_hls_mux_create(obs_data_t *settings, obs_output_t *output)
 	if (os_sem_init(&stream->write_sem, 0) != 0)
 		goto fail;
 
-	if (obs_output_get_flags(output) & OBS_OUTPUT_SERVICE)
-		stream->is_network = true;
-
 	UNUSED_PARAMETER(settings);
 	return stream;
 
 fail:
-	pthread_mutex_destroy(&stream->write_mutex);
-	os_sem_destroy(stream->write_sem);
-	os_event_destroy(stream->stop_event);
-	bfree(stream);
+	ffmpeg_hls_mux_destroy(stream);
 	return NULL;
 }
 
@@ -127,37 +96,31 @@ static int process_packet(struct ffmpeg_muxer *stream)
 {
 	struct encoder_packet *packet;
 	int remaining;
+	bool ret;
 
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
 	if (remaining) {
 		packet = &stream->mux_packets.array[0];
-		write_packet(stream, packet);
+		ret = write_packet(stream, packet);
 		obs_encoder_packet_release(packet);
 		da_erase(stream->mux_packets, 0);
 	}
 	pthread_mutex_unlock(&stream->write_mutex);
-
-	return 0;
+	return ret;
 }
 
 static void *write_thread(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
-	stream->active = true;
-
 	while (os_sem_wait(stream->write_sem) == 0) {
 
 		if (os_event_try(stream->stop_event) == 0)
 			break;
 
 		int ret = process_packet(stream);
-		if (ret != 0) {
+		if (ret) {
 			int code = OBS_OUTPUT_ERROR;
-
-			if (ret == -ENOSPC)
-				code = OBS_OUTPUT_NO_SPACE;
-
 			obs_output_signal_stop(stream->output, code);
 			hls_deactivate(stream, 0);
 			break;
@@ -203,6 +166,7 @@ bool ffmpeg_hls_mux_start(void *data)
 	keyint_sec = obs_data_get_int(settings, "keyint_sec");
 	if (keyint_sec)
 		dstr_catf(&stream->muxer_settings, " hls_time=%d", keyint_sec);
+	stream->keyint_sec = keyint_sec;
 
 	obs_data_release(settings);
 
@@ -215,6 +179,10 @@ bool ffmpeg_hls_mux_start(void *data)
 		warn("Failed to create process pipe");
 		return false;
 	}
+	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
+						     write_thread, stream) == 0;
+	if (!stream->mux_thread_joinable)
+		return false;
 
 	/* write headers and start capture */
 	os_atomic_set_bool(&stream->active, true);
@@ -228,10 +196,7 @@ bool ffmpeg_hls_mux_start(void *data)
 
 	dstr_copy(&stream->printable_path, path_str);
 	info("Writing to path '%s'...", stream->printable_path.array);
-
-	stream->mux_thread_joinable = pthread_create(&stream->mux_thread, NULL,
-						     write_thread, stream) == 0;
-	return (stream->mux_thread_joinable);
+	return true;
 }
 
 static bool write_packet_to_array(struct ffmpeg_muxer *stream,
@@ -289,7 +254,7 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 	int64_t buffer_duration_usec;
 	int priority = pframes ? OBS_NAL_PRIORITY_HIGHEST
 			       : OBS_NAL_PRIORITY_HIGH;
-	int64_t drop_threshold = 2 * stream->keyframes;
+	int64_t drop_threshold = 2 * stream->keyint_sec;
 
 	if (!find_first_video_packet(stream, &first))
 		return;
@@ -358,7 +323,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	if (stream->active) {
+	if active (stream) {
 		added_packet =
 			(packet->type == OBS_ENCODER_VIDEO)
 				? add_video_packet(stream, &new_packet)

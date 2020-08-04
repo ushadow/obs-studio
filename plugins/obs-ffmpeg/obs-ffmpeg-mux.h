@@ -23,6 +23,7 @@ struct ffmpeg_muxer {
 	int64_t max_time;
 	int64_t save_ts;
 	int keyframes;
+	int keyint_sec;
 	obs_hotkey_id hotkey;
 
 	DARRAY(struct encoder_packet) mux_packets;
