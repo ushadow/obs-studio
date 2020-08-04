@@ -1,5 +1,3 @@
-#include "obs-ffmpeg-hls-mux.h"
-
 #include <math.h>
 #include <obs-avc.h>
 #include <obs-module.h>
@@ -9,6 +7,7 @@
 #include <util/pipe.h>
 #include <util/threading.h>
 
+#include "obs-ffmpeg-hls-mux.h"
 #include "obs-ffmpeg-mux.h"
 
 #define do_log(level, format, ...)                       \
@@ -30,9 +29,9 @@ int hls_stream_dropped_frames(void *data)
 	return stream->dropped_frames;
 }
 
-bool hls_deactivate(struct ffmpeg_muxer *stream)
+bool hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
-	deactivate(stream, 0);
+	deactivate(stream, code);
 
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
@@ -213,8 +212,7 @@ static bool write_packet_to_array(struct ffmpeg_muxer *stream,
 
 static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 {
-	int num_frames_dropped = 0;
-	int i = 0;
+	size_t i = 0;
 	while (i < stream->mux_packets.num) {
 		struct encoder_packet *packet;
 		packet = &stream->mux_packets.array[i];
@@ -323,7 +321,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	if active (stream) {
+	if (active(stream)) {
 		added_packet =
 			(packet->type == OBS_ENCODER_VIDEO)
 				? add_video_packet(stream, &new_packet)

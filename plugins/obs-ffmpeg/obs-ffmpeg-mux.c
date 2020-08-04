@@ -14,8 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#include "obs-ffmpeg-mux.h"
-
 #include <obs-avc.h>
 #include <obs-module.h>
 #include <obs-hotkey.h>
@@ -28,6 +26,7 @@
 
 #include "ffmpeg-mux/ffmpeg-mux.h"
 #include "obs-ffmpeg-hls-mux.h"
+#include "obs-ffmpeg-mux.h"
 
 #ifdef _WIN32
 #include "util/windows/win-version.h"
@@ -399,7 +398,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 
 	ret = deactivate(stream, 0);
 	if (stream->threading_buffer)
-		hls_deactivate(stream);
+		hls_deactivate(stream, 0);
 
 	switch (ret) {
 	case FFM_UNSUPPORTED:
