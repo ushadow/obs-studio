@@ -1,14 +1,14 @@
-#include "obs-ffmpeg-mux.h"
+#include "obs-ffmpeg-hls-mux.h"
 
 #include <obs-avc.h>
 #include <obs-module.h>
+#include <util/circlebuf.h>
 #include <util/darray.h>
 #include <util/dstr.h>
-#include <util/circlebuf.h>
 #include <util/pipe.h>
 #include <util/threading.h>
 
-#include "obs-ffmpeg-hls-mux.h"
+#include "obs-ffmpeg-mux.h"
 
 #define do_log(level, format, ...)                       \
 	blog(level, "[ffmpegh hls muxer: '%s'] " format, \
