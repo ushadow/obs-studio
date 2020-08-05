@@ -21,8 +21,8 @@ int hls_stream_dropped_frames(void *data)
 
 bool hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
+	printf("hls_deactivate: entered\n");
 	int ret;
-	
 	ret = deactivate(stream, code);
 
 	if (stream->mux_thread_joinable) {
@@ -46,6 +46,7 @@ bool hls_deactivate(struct ffmpeg_muxer *stream, int code)
 
 void ffmpeg_hls_mux_destroy(void *data)
 {
+	printf("ffmpeg_hls_mux_destroy: entering\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
@@ -106,6 +107,7 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 
 static void *write_thread(void *data)
 {
+	printf("write_thread: entered\n");
 	struct ffmpeg_muxer *stream = data;
 	while (os_sem_wait(stream->write_sem) == 0) {
 
@@ -113,7 +115,7 @@ static void *write_thread(void *data)
 			break;
 
 		bool ret = process_packet(stream);
-		if (ret) {
+		if (!ret) {
 			int code = OBS_OUTPUT_ERROR;
 			obs_output_signal_stop(stream->output, code);
 			hls_deactivate(stream, 0);
@@ -191,6 +193,7 @@ bool ffmpeg_hls_mux_start(void *data)
 
 	dstr_copy(&stream->printable_path, path_str);
 	info("Writing to path '%s'...", stream->printable_path.array);
+	printf("ffmpeg_hls_mux_start: returning true\n");
 	return true;
 }
 
