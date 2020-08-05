@@ -5,6 +5,7 @@
 #include <util/pipe.h>
 #include <util/threading.h>
 
+#include "obs-ffmpeg-hls-mux.h"
 #include "obs-ffmpeg-mux.h"
 
 #define do_log(level, format, ...)                       \

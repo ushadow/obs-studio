@@ -6,9 +6,6 @@ struct ffmpeg_muxer {
 	int64_t stop_ts;
 	uint64_t total_bytes;
 	struct dstr path;
-	/* printable_path is path with any stream key information removed */
-	struct dstr printable_path;
-	struct dstr stream_key;
 	struct dstr muxer_settings;
 	bool sent_headers;
 	volatile bool active;
@@ -23,25 +20,26 @@ struct ffmpeg_muxer {
 	int64_t max_time;
 	int64_t save_ts;
 	int keyframes;
-	int keyint_sec;
 	obs_hotkey_id hotkey;
 
+	/* HLS */
+	struct dstr printable_path;
+	struct dstr stream_key;
+	int keyint_sec;
 	DARRAY(struct encoder_packet) mux_packets;
 	pthread_t mux_thread;
 	bool mux_thread_joinable;
-
 	pthread_mutex_t write_mutex;
 	os_sem_t *write_sem;
 	os_event_t *stop_event;
+	bool threading_buffer;
+	int dropped_frames;
+	int min_priority;
+	int64_t last_dts_usec;
 
 	volatile bool muxing;
 
 	bool is_network;
-	bool threading_buffer;
-
-	int dropped_frames;
-	int min_priority;
-	int64_t last_dts_usec;
 };
 
 bool stopping(struct ffmpeg_muxer *stream);
