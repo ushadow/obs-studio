@@ -1,11 +1,3 @@
-#include <obs-avc.h>
-#include <obs-module.h>
-#include <util/darray.h>
-#include <util/dstr.h>
-#include <util/pipe.h>
-#include <util/threading.h>
-
-#include "obs-ffmpeg-hls-mux.h"
 #include "obs-ffmpeg-mux.h"
 
 #define do_log(level, format, ...)                       \

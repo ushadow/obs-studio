@@ -14,16 +14,6 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#include <obs-avc.h>
-#include <obs-module.h>
-#include <obs-hotkey.h>
-#include <util/circlebuf.h>
-#include <util/darray.h>
-#include <util/dstr.h>
-#include <util/pipe.h>
-#include <util/platform.h>
-#include <util/threading.h>
-
 #include "ffmpeg-mux/ffmpeg-mux.h"
 #include "obs-ffmpeg-hls-mux.h"
 #include "obs-ffmpeg-mux.h"

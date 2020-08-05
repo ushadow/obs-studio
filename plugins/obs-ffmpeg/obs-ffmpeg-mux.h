@@ -1,5 +1,15 @@
 #pragma once
 
+#include <obs-avc.h>
+#include <obs-module.h>
+#include <obs-hotkey.h>
+#include <util/circlebuf.h>
+#include <util/darray.h>
+#include <util/dstr.h>
+#include <util/pipe.h>
+#include <util/platform.h>
+#include <util/threading.h>
+
 struct ffmpeg_muxer {
 	obs_output_t *output;
 	os_process_pipe_t *pipe;

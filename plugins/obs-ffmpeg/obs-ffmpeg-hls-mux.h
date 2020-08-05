@@ -1,5 +1,7 @@
 #pragma once
 
+#include <obs-module.h>
+
 const char *ffmpeg_hls_mux_getname(void *type);
 int hls_stream_dropped_frames(void *data);
 void ffmpeg_hls_mux_destroy(void *data);
