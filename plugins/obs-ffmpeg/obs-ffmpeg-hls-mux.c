@@ -1,13 +1,10 @@
-#include <math.h>
 #include <obs-avc.h>
 #include <obs-module.h>
-#include <util/circlebuf.h>
 #include <util/darray.h>
 #include <util/dstr.h>
 #include <util/pipe.h>
 #include <util/threading.h>
 
-#include "obs-ffmpeg-hls-mux.h"
 #include "obs-ffmpeg-mux.h"
 
 #define do_log(level, format, ...)                       \
@@ -129,7 +126,7 @@ static void *write_thread(void *data)
 		}
 	}
 
-	stream->active = false;
+	os_atomic_set_bool(&stream->active, false);
 	return NULL;
 }
 
@@ -166,9 +163,8 @@ bool ffmpeg_hls_mux_start(void *data)
 	vencoder = obs_output_get_video_encoder(stream->output);
 	settings = obs_encoder_get_settings(vencoder);
 	keyint_sec = obs_data_get_int(settings, "keyint_sec");
-	if (keyint_sec)
+	if (keyint_sec) {
 		dstr_catf(&stream->muxer_settings, " hls_time=%d", keyint_sec);
-	if (keyint_sec > 0) {
 		stream->keyint_sec = keyint_sec;
 	}
 
@@ -259,7 +255,7 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 
 	buffer_duration_usec = stream->last_dts_usec - first.dts_usec;
 
-	if (buffer_duration_usec > drop_threshold * pow(10, 6))
+	if (buffer_duration_usec > drop_threshold * 1000000)
 		drop_frames(stream, priority);
 }
 
