@@ -14,10 +14,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
-#include <stdbool.h>
-
 #include "ffmpeg-mux/ffmpeg-mux.h"
-#include "obs-ffmpeg-hls-mux.h"
 #include "obs-ffmpeg-mux.h"
 
 #ifdef _WIN32
@@ -355,10 +352,30 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 	}
 
 	os_atomic_set_bool(&stream->stopping, false);
+
+	if (stream->is_hls) {
+
+		if (stream->mux_thread_joinable) {
+			os_event_signal(stream->stop_event);
+			os_sem_post(stream->write_sem);
+			pthread_join(stream->mux_thread, NULL);
+			stream->mux_thread_joinable = false;
+		}
+
+		pthread_mutex_lock(&stream->write_mutex);
+		for (size_t i = 0; i < stream->mux_packets.num; i++) {
+			struct encoder_packet *packet;
+			packet = &stream->mux_packets.array[i];
+			obs_encoder_packet_release(packet);
+		}
+		da_free(stream->mux_packets);
+		pthread_mutex_unlock(&stream->write_mutex);
+	}
+
 	return ret;
 }
 
-static void ffmpeg_mux_stop(void *data, uint64_t ts)
+void ffmpeg_mux_stop(void *data, uint64_t ts)
 {
 	struct ffmpeg_muxer *stream = data;
 
@@ -386,10 +403,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 		obs_output_set_last_error(stream->output, error);
 	}
 
-	if (stream->threading_buffer)
-		ret = hls_deactivate(stream, 0);
-	else
-		ret = deactivate(stream, 0);
+	ret = deactivate(stream, 0);
 
 	switch (ret) {
 	case FFM_UNSUPPORTED:
@@ -517,7 +531,7 @@ static obs_properties_t *ffmpeg_mux_properties(void *unused)
 	return props;
 }
 
-static uint64_t ffmpeg_mux_total_bytes(void *data)
+uint64_t ffmpeg_mux_total_bytes(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 	return stream->total_bytes;
@@ -569,22 +583,6 @@ struct obs_output_info ffmpeg_mpegts_muxer = {
 };
 
 /* ------------------------------------------------------------------------ */
-
-struct obs_output_info ffmpeg_hls_muxer = {
-	.id = "ffmpeg_hls_muxer",
-	.flags = OBS_OUTPUT_AV | OBS_OUTPUT_ENCODED | OBS_OUTPUT_MULTI_TRACK |
-		 OBS_OUTPUT_SERVICE,
-	.encoded_video_codecs = "h264",
-	.encoded_audio_codecs = "aac",
-	.get_name = ffmpeg_hls_mux_getname,
-	.create = ffmpeg_hls_mux_create,
-	.destroy = ffmpeg_hls_mux_destroy,
-	.start = ffmpeg_hls_mux_start,
-	.stop = ffmpeg_mux_stop,
-	.encoded_packet = ffmpeg_hls_mux_data,
-	.get_total_bytes = ffmpeg_mux_total_bytes,
-	.get_dropped_frames = hls_stream_dropped_frames,
-};
 
 static const char *replay_buffer_getname(void *type)
 {

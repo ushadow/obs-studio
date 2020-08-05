@@ -44,7 +44,7 @@ struct ffmpeg_muxer {
 	pthread_mutex_t write_mutex;
 	os_sem_t *write_sem;
 	os_event_t *stop_event;
-	bool threading_buffer;
+	bool is_hls;
 	int dropped_frames;
 	int min_priority;
 	int64_t last_dts_usec;
@@ -58,3 +58,5 @@ void start_pipe(struct ffmpeg_muxer *stream, const char *path);
 bool write_packet(struct ffmpeg_muxer *stream, struct encoder_packet *packet);
 bool send_headers(struct ffmpeg_muxer *stream);
 int deactivate(struct ffmpeg_muxer *stream, int code);
+void ffmpeg_mux_stop(void *data, uint64_t ts);
+uint64_t ffmpeg_mux_total_bytes(void *data);

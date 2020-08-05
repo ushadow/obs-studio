@@ -19,36 +19,12 @@ int hls_stream_dropped_frames(void *data)
 	return stream->dropped_frames;
 }
 
-bool hls_deactivate(struct ffmpeg_muxer *stream, int code)
-{
-	int ret;
-	ret = deactivate(stream, code);
-
-	if (stream->mux_thread_joinable) {
-		os_event_signal(stream->stop_event);
-		os_sem_post(stream->write_sem);
-		pthread_join(stream->mux_thread, NULL);
-		stream->mux_thread_joinable = false;
-	}
-
-	pthread_mutex_lock(&stream->write_mutex);
-	for (size_t i = 0; i < stream->mux_packets.num; i++) {
-		struct encoder_packet *packet;
-		packet = &stream->mux_packets.array[i];
-		obs_encoder_packet_release(packet);
-	}
-	da_free(stream->mux_packets);
-	pthread_mutex_unlock(&stream->write_mutex);
-
-	return ret;
-}
-
 void ffmpeg_hls_mux_destroy(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
-		hls_deactivate(stream, 0);
+		deactivate(stream, 0);
 
 		pthread_mutex_destroy(&stream->write_mutex);
 		os_sem_destroy(stream->write_sem);
@@ -115,7 +91,7 @@ static void *write_thread(void *data)
 		if (!ret) {
 			int code = OBS_OUTPUT_ERROR;
 			obs_output_signal_stop(stream->output, code);
-			hls_deactivate(stream, 0);
+			deactivate(stream, 0);
 			break;
 		}
 	}
@@ -181,7 +157,7 @@ bool ffmpeg_hls_mux_start(void *data)
 	/* write headers and start capture */
 	os_atomic_set_bool(&stream->active, true);
 	os_atomic_set_bool(&stream->capturing, true);
-	os_atomic_set_bool(&stream->threading_buffer, true);
+	os_atomic_set_bool(&stream->is_hls, true);
 	stream->total_bytes = 0;
 	stream->dropped_frames = 0;
 	stream->min_priority = 0;
@@ -285,7 +261,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
-		hls_deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
+		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
 
@@ -297,7 +273,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			hls_deactivate(stream, 0);
+			deactivate(stream, 0);
 			return;
 		}
 	}
@@ -325,3 +301,19 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	else
 		obs_encoder_packet_release(&new_packet);
 }
+
+struct obs_output_info ffmpeg_hls_muxer = {
+	.id = "ffmpeg_hls_muxer",
+	.flags = OBS_OUTPUT_AV | OBS_OUTPUT_ENCODED | OBS_OUTPUT_MULTI_TRACK |
+		 OBS_OUTPUT_SERVICE,
+	.encoded_video_codecs = "h264",
+	.encoded_audio_codecs = "aac",
+	.get_name = ffmpeg_hls_mux_getname,
+	.create = ffmpeg_hls_mux_create,
+	.destroy = ffmpeg_hls_mux_destroy,
+	.start = ffmpeg_hls_mux_start,
+	.stop = ffmpeg_mux_stop,
+	.encoded_packet = ffmpeg_hls_mux_data,
+	.get_total_bytes = ffmpeg_mux_total_bytes,
+	.get_dropped_frames = hls_stream_dropped_frames,
+};
