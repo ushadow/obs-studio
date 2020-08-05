@@ -1,7 +1,7 @@
 #include "obs-ffmpeg-mux.h"
 
 #define do_log(level, format, ...)                       \
-	blog(level, "[ffmpegh hls muxer: '%s'] " format, \
+	blog(level, "[ffmpeg hls muxer: '%s'] " format, \
 	     obs_output_get_name(stream->output), ##__VA_ARGS__)
 
 #define warn(format, ...) do_log(LOG_WARNING, format, ##__VA_ARGS__)
@@ -21,7 +21,9 @@ int hls_stream_dropped_frames(void *data)
 
 bool hls_deactivate(struct ffmpeg_muxer *stream, int code)
 {
-	deactivate(stream, code);
+	int ret;
+	
+	ret = deactivate(stream, code);
 
 	if (stream->mux_thread_joinable) {
 		os_event_signal(stream->stop_event);
@@ -39,7 +41,7 @@ bool hls_deactivate(struct ffmpeg_muxer *stream, int code)
 	da_free(stream->mux_packets);
 	pthread_mutex_unlock(&stream->write_mutex);
 
-	return true;
+	return ret;
 }
 
 void ffmpeg_hls_mux_destroy(void *data)
