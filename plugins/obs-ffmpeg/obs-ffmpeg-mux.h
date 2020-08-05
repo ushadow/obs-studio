@@ -31,9 +31,9 @@ struct ffmpeg_muxer {
 	int keyframes;
 	obs_hotkey_id hotkey;
 
-	DARRAY(struct encoder_packet) mux_packets;	
-	pthread_t mux_thread;	
-	bool mux_thread_joinable;	
+	DARRAY(struct encoder_packet) mux_packets;
+	pthread_t mux_thread;
+	bool mux_thread_joinable;
 	volatile bool muxing;
 
 	/* HLS */

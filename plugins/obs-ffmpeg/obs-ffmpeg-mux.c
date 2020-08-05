@@ -388,7 +388,7 @@ static void signal_failure(struct ffmpeg_muxer *stream)
 
 	if (stream->threading_buffer)
 		ret = hls_deactivate(stream, 0);
-	else 
+	else
 		ret = deactivate(stream, 0);
 
 	switch (ret) {

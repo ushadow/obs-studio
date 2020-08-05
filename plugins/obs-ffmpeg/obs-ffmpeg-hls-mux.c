@@ -1,6 +1,6 @@
 #include "obs-ffmpeg-mux.h"
 
-#define do_log(level, format, ...)                       \
+#define do_log(level, format, ...)                      \
 	blog(level, "[ffmpeg hls muxer: '%s'] " format, \
 	     obs_output_get_name(stream->output), ##__VA_ARGS__)
 
