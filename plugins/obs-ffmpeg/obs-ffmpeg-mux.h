@@ -20,6 +20,10 @@ struct ffmpeg_muxer {
 	volatile bool active;
 	volatile bool stopping;
 	volatile bool capturing;
+	struct dstr printable_path;
+	struct dstr stream_key;
+	struct dstr muxer_settings;
+
 
 	/* replay buffer */
 	struct circlebuf packets;
@@ -31,15 +35,13 @@ struct ffmpeg_muxer {
 	int keyframes;
 	obs_hotkey_id hotkey;
 
+	/* these are accessed both by replay buffer and by HLS */
 	DARRAY(struct encoder_packet) mux_packets;
 	pthread_t mux_thread;
 	bool mux_thread_joinable;
 	volatile bool muxing;
 
 	/* HLS */
-	struct dstr printable_path;
-	struct dstr stream_key;
-	struct dstr muxer_settings;
 	int keyint_sec;
 	pthread_mutex_t write_mutex;
 	os_sem_t *write_sem;

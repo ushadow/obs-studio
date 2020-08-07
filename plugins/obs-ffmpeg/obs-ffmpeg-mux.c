@@ -70,6 +70,8 @@ static void ffmpeg_mux_destroy(void *data)
 
 	os_process_pipe_destroy(stream->pipe);
 	dstr_free(&stream->path);
+	dstr_free(&stream->printable_path);	
+	dstr_free(&stream->stream_key);
 	dstr_free(&stream->muxer_settings);
 	bfree(stream);
 }
@@ -357,7 +359,6 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 	os_atomic_set_bool(&stream->stopping, false);
 
 	if (stream->is_hls) {
-
 		if (stream->mux_thread_joinable) {
 			os_event_signal(stream->stop_event);
 			os_sem_post(stream->write_sem);
