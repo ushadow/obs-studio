@@ -70,7 +70,7 @@ static void ffmpeg_mux_destroy(void *data)
 
 	os_process_pipe_destroy(stream->pipe);
 	dstr_free(&stream->path);
-	dstr_free(&stream->printable_path);	
+	dstr_free(&stream->printable_path);
 	dstr_free(&stream->stream_key);
 	dstr_free(&stream->muxer_settings);
 	bfree(stream);
