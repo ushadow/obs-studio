@@ -24,7 +24,6 @@ struct ffmpeg_muxer {
 	struct dstr stream_key;
 	struct dstr muxer_settings;
 
-
 	/* replay buffer */
 	struct circlebuf packets;
 	int64_t cur_size;
@@ -41,7 +40,7 @@ struct ffmpeg_muxer {
 	bool mux_thread_joinable;
 	volatile bool muxing;
 
-	/* HLS */
+	/* HLS only */
 	int keyint_sec;
 	pthread_mutex_t write_mutex;
 	os_sem_t *write_sem;
