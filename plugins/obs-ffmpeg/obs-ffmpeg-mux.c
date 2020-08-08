@@ -345,7 +345,7 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		os_atomic_set_bool(&stream->sent_headers, false);
 
 		info("Output of file '%s' stopped",
-		     (dstr_is_empty(&stream->printable_path))
+		     dstr_is_empty(&stream->printable_path)
 			     ? stream->path.array
 			     : stream->printable_path.array);
 	}

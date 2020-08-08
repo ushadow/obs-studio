@@ -70,12 +70,13 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 	pthread_mutex_lock(&stream->write_mutex);
 	remaining = stream->mux_packets.num;
 	if (remaining) {
-		packet = &stream->mux_packets.array[0];
-		ret = write_packet(stream, packet);
-		obs_encoder_packet_release(packet);
+		packet = stream->mux_packets.array[0];
 		da_erase(stream->mux_packets, 0);
 	}
 	pthread_mutex_unlock(&stream->write_mutex);
+
+	ret = write_packet(stream, &packet);
+	obs_encoder_packet_release(&packet);
 	return ret;
 }
 
