@@ -63,7 +63,7 @@ fail:
 
 static bool process_packet(struct ffmpeg_muxer *stream)
 {
-	struct encoder_packet *packet;
+	struct encoder_packet packet;
 	int remaining;
 	bool ret = true;
 
