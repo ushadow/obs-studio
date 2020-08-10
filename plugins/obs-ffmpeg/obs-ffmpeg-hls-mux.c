@@ -83,8 +83,8 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 static void *write_thread(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
-	while (os_sem_wait(stream->write_sem) == 0) {
 
+	while (os_sem_wait(stream->write_sem) == 0) {
 		if (os_event_try(stream->stop_event) == 0)
 			break;
 
@@ -256,9 +256,8 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	struct encoder_packet tmp_packet;
 	bool added_packet = false;
 
-	if (!active(stream)) {
+	if (!active(stream))
 		return;
-	}
 
 	/* encoder failure */
 	if (!packet) {
