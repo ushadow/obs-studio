@@ -125,7 +125,6 @@ bool ffmpeg_hls_mux_start(void *data)
 	dstr_copy(&stream->stream_key, stream_key);
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
-	dstr_init(&stream->muxer_settings);
 	dstr_catf(&stream->muxer_settings,
 		  "http_user_agent=libobs/%s method=PUT http_persistent=1",
 		  OBS_VERSION);
