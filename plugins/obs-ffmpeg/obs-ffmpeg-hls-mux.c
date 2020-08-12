@@ -64,15 +64,13 @@ fail:
 static bool process_packet(struct ffmpeg_muxer *stream)
 {
 	struct encoder_packet packet;
-	int remaining;
 	bool ret = true;
 
 	pthread_mutex_lock(&stream->write_mutex);
-	remaining = stream->mux_packets.num;
-	if (remaining) {
-		packet = stream->mux_packets.array[0];
-		da_erase(stream->mux_packets, 0);
-	}
+
+	if (stream->packets.size) 
+		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
+
 	pthread_mutex_unlock(&stream->write_mutex);
 
 	ret = write_packet(stream, &packet);
@@ -170,41 +168,53 @@ bool ffmpeg_hls_mux_start(void *data)
 	return true;
 }
 
-static bool write_packet_to_array(struct ffmpeg_muxer *stream,
+static bool write_packet_to_buf(struct ffmpeg_muxer *stream,
 				  struct encoder_packet *packet)
 {
-	da_push_back(stream->mux_packets, packet);
+	circlebuf_push_back(&stream->packets, packet, sizeof(struct encoder_packet));
 	return true;
 }
 
 static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 {
-	size_t i = 0;
-	while (i < stream->mux_packets.num) {
-		struct encoder_packet *packet;
-		packet = &stream->mux_packets.array[i];
+	struct circlebuf new_buf = {0};
+	int num_frames_dropped = 0;
+
+	circlebuf_reserve(&new_buf, sizeof(struct encoder_packet) * 8);
+
+	while (stream->packets.size) {
+		struct encoder_packet packet;
+		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 
 		/* do not drop audio data or video keyframes */
-		if (!(packet->type == OBS_ENCODER_AUDIO ||
-		      packet->drop_priority >= highest_priority)) {
-			obs_encoder_packet_release(packet);
-			da_erase(stream->mux_packets, i);
-			stream->dropped_frames++;
-			i--;
+		if (packet.type == OBS_ENCODER_AUDIO ||
+		    packet.drop_priority >= highest_priority) {
+			circlebuf_push_back(&new_buf, &packet, sizeof(packet));
+		} else {
+			num_frames_dropped++;
+			obs_encoder_packet_release(&packet);
 		}
-		i++;
 	}
 
-	if (stream->min_priority < highest_priority) {
+	circlebuf_free(&stream->packets);
+	stream->packets = new_buf;
+
+	if (stream->min_priority < highest_priority)
 		stream->min_priority = highest_priority;
-	}
+	if (!num_frames_dropped)
+		return;
+
+	stream->dropped_frames += num_frames_dropped;
 }
 
 static bool find_first_video_packet(struct ffmpeg_muxer *stream,
 				    struct encoder_packet *first)
 {
-	for (size_t i = 0; i < stream->mux_packets.num; i++) {
-		struct encoder_packet *cur = &stream->mux_packets.array[i];
+	size_t count = stream->packets.size / sizeof(*first);
+
+	for (size_t i = 0; i < count; i++) {
+		struct encoder_packet *cur =
+			circlebuf_data(&stream->packets, i * sizeof(*first));
 		if (cur->type == OBS_ENCODER_VIDEO && !cur->keyframe) {
 			*first = *cur;
 			return true;
@@ -246,7 +256,7 @@ static bool add_video_packet(struct ffmpeg_muxer *stream,
 	}
 
 	stream->last_dts_usec = packet->dts_usec;
-	return write_packet_to_array(stream, packet);
+	return write_packet_to_buf(stream, packet);
 }
 
 void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
@@ -291,7 +301,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 		added_packet =
 			(packet->type == OBS_ENCODER_VIDEO)
 				? add_video_packet(stream, &new_packet)
-				: write_packet_to_array(stream, &new_packet);
+				: write_packet_to_buf(stream, &new_packet);
 	}
 
 	pthread_mutex_unlock(&stream->write_mutex);

@@ -67,6 +67,7 @@ static void ffmpeg_mux_destroy(void *data)
 	if (stream->mux_thread_joinable)
 		pthread_join(stream->mux_thread, NULL);
 	da_free(stream->mux_packets);
+	circlebuf_free(&stream->packets);
 
 	os_process_pipe_destroy(stream->pipe);
 	dstr_free(&stream->path);
@@ -367,12 +368,13 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		}
 
 		pthread_mutex_lock(&stream->write_mutex);
-		for (size_t i = 0; i < stream->mux_packets.num; i++) {
-			struct encoder_packet *packet;
-			packet = &stream->mux_packets.array[i];
-			obs_encoder_packet_release(packet);
+
+		while (stream->packets.size) {
+			struct encoder_packet packet;
+			circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
+			obs_encoder_packet_release(&packet);
 		}
-		da_free(stream->mux_packets);
+
 		pthread_mutex_unlock(&stream->write_mutex);
 	}
 

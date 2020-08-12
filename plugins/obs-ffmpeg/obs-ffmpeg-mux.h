@@ -25,7 +25,6 @@ struct ffmpeg_muxer {
 	struct dstr muxer_settings;
 
 	/* replay buffer */
-	struct circlebuf packets;
 	int64_t cur_size;
 	int64_t cur_time;
 	int64_t max_size;
@@ -33,12 +32,13 @@ struct ffmpeg_muxer {
 	int64_t save_ts;
 	int keyframes;
 	obs_hotkey_id hotkey;
+	volatile bool muxing;
+	DARRAY(struct encoder_packet) mux_packets;
 
 	/* these are accessed both by replay buffer and by HLS */
-	DARRAY(struct encoder_packet) mux_packets;
 	pthread_t mux_thread;
 	bool mux_thread_joinable;
-	volatile bool muxing;
+	struct circlebuf packets;
 
 	/* HLS only */
 	int keyint_sec;
