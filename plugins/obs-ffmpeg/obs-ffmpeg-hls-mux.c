@@ -91,8 +91,8 @@ static void *write_thread(void *data)
 
 		bool ret = process_packet(stream);
 		if (!ret) {
-			int code = OBS_OUTPUT_ERROR;
-			obs_output_signal_stop(stream->output, code);
+			obs_output_signal_stop(stream->output,
+					       OBS_OUTPUT_ERROR);
 			deactivate(stream, 0);
 			break;
 		}
@@ -204,8 +204,6 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 
 	if (stream->min_priority < highest_priority)
 		stream->min_priority = highest_priority;
-	if (!num_frames_dropped)
-		return;
 
 	stream->dropped_frames += num_frames_dropped;
 }
@@ -232,14 +230,15 @@ void check_to_drop_frames(struct ffmpeg_muxer *stream, bool pframes)
 	int64_t buffer_duration_usec;
 	int priority = pframes ? OBS_NAL_PRIORITY_HIGHEST
 			       : OBS_NAL_PRIORITY_HIGH;
-	int64_t drop_threshold = 2 * stream->keyint_sec;
+	int keyint_sec = stream->keyint_sec;
+	int64_t drop_threshold_sec = keyint_sec ? 2 * keyint_sec : 10;
 
 	if (!find_first_video_packet(stream, &first))
 		return;
 
 	buffer_duration_usec = stream->last_dts_usec - first.dts_usec;
 
-	if (buffer_duration_usec > drop_threshold * 1000000)
+	if (buffer_duration_usec > drop_threshold_sec * 1000000)
 		drop_frames(stream, priority);
 }
 
