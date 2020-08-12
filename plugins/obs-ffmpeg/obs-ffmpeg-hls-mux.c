@@ -30,6 +30,9 @@ void ffmpeg_hls_mux_destroy(void *data)
 		os_sem_destroy(stream->write_sem);
 		os_event_destroy(stream->stop_event);
 
+		da_free(stream->mux_packets);
+		circlebuf_free(&stream->packets);
+
 		os_process_pipe_destroy(stream->pipe);
 		dstr_free(&stream->path);
 		dstr_free(&stream->printable_path);
