@@ -68,7 +68,7 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	if (stream->packets.size) 
+	if (stream->packets.size)
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
 
 	pthread_mutex_unlock(&stream->write_mutex);
@@ -124,9 +124,8 @@ bool ffmpeg_hls_mux_start(void *data)
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
 	dstr_copy(&stream->muxer_settings,
-		"method=PUT http_persistent=1 ignore_io_errors=1 ");
-	dstr_catf(&stream->muxer_settings,
-		  "http_user_agent=libobs/%s",
+		  "method=PUT http_persistent=1 ignore_io_errors=1 ");
+	dstr_catf(&stream->muxer_settings, "http_user_agent=libobs/%s",
 		  OBS_VERSION);
 
 	vencoder = obs_output_get_video_encoder(stream->output);
@@ -169,9 +168,10 @@ bool ffmpeg_hls_mux_start(void *data)
 }
 
 static bool write_packet_to_buf(struct ffmpeg_muxer *stream,
-				  struct encoder_packet *packet)
+				struct encoder_packet *packet)
 {
-	circlebuf_push_back(&stream->packets, packet, sizeof(struct encoder_packet));
+	circlebuf_push_back(&stream->packets, packet,
+			    sizeof(struct encoder_packet));
 	return true;
 }
 

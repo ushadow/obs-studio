@@ -371,7 +371,8 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 
 		while (stream->packets.size) {
 			struct encoder_packet packet;
-			circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
+			circlebuf_pop_front(&stream->packets, &packet,
+					    sizeof(packet));
 			obs_encoder_packet_release(&packet);
 		}
 
