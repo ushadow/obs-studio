@@ -125,10 +125,11 @@ bool ffmpeg_hls_mux_start(void *data)
 	dstr_copy(&stream->stream_key, stream_key);
 	dstr_copy(&path, path_str);
 	dstr_replace(&path, "{stream_key}", stream_key);
+	dstr_copy(&stream->muxer_settings,
+		"method=PUT http_persistent=1 ignore_io_errors=1 ");
 	dstr_catf(&stream->muxer_settings,
-		  "http_user_agent=libobs/%s method=PUT http_persistent=1",
+		  "http_user_agent=libobs/%s",
 		  OBS_VERSION);
-	dstr_catf(&stream->muxer_settings, " ignore_io_errors=1");
 
 	vencoder = obs_output_get_video_encoder(stream->output);
 	settings = obs_encoder_get_settings(vencoder);
@@ -187,7 +188,7 @@ static void drop_frames(struct ffmpeg_muxer *stream, int highest_priority)
 		if (!(packet->type == OBS_ENCODER_AUDIO ||
 		      packet->drop_priority >= highest_priority)) {
 			obs_encoder_packet_release(packet);
-			da_erase_item(stream->mux_packets, packet);
+			da_erase(stream->mux_packets, i);
 			stream->dropped_frames++;
 			i--;
 		}
