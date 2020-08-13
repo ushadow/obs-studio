@@ -15,11 +15,11 @@ struct ffmpeg_muxer {
 	os_process_pipe_t *pipe;
 	int64_t stop_ts;
 	uint64_t total_bytes;
-	struct dstr path;
 	bool sent_headers;
 	volatile bool active;
-	volatile bool stopping;
 	volatile bool capturing;
+	volatile bool stopping;
+	struct dstr path;
 	struct dstr printable_path;
 	struct dstr stream_key;
 	struct dstr muxer_settings;
