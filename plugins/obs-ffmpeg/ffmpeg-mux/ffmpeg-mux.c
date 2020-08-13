@@ -43,9 +43,6 @@
 
 static char *global_stream_key = "";
 
-int64_t past_vid_packet_dts = -7000;
-int64_t past_aud_packet_dts = -7000;
-
 struct resize_buf {
 	uint8_t *buf;
 	size_t size;
@@ -771,19 +768,6 @@ static inline bool ffmpeg_mux_packet(struct ffmpeg_mux *ffm, uint8_t *buf,
 	packet.stream_index = idx;
 	packet.pts = rescale_ts(ffm, codec_time_base, info->pts, idx);
 	packet.dts = rescale_ts(ffm, codec_time_base, info->dts, idx);
-	if (info->type == FFM_PACKET_VIDEO) {
-		if (packet.dts <= past_vid_packet_dts) {
-			printf("\nFFMPEG: Ffmpeg_mux_packet video: former was %lld, new packet.dts %lld", past_vid_packet_dts, packet.dts);
-		}
-	}	else if (packet.dts <= past_aud_packet_dts) {
-		printf("\nFFMPEG: Ffmpeg_mux_packet audio: former was %lld, new packet.dts %lld. Data is %d\n", past_aud_packet_dts, packet.dts, packet.data);
-	} 
-
-	if (info->type == FFM_PACKET_VIDEO) {
-		past_vid_packet_dts = packet.dts;	
-	} else {
-		past_aud_packet_dts = packet.dts;			
-	}
 
 	if (info->keyframe)
 		packet.flags = AV_PKT_FLAG_KEY;

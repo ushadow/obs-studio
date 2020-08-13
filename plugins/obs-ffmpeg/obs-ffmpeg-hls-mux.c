@@ -24,7 +24,6 @@ void ffmpeg_hls_mux_destroy(void *data)
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
-		printf("destroy: deactivate called next\n");
 		deactivate(stream, 0);
 
 		pthread_mutex_destroy(&stream->write_mutex);
@@ -68,17 +67,22 @@ fail:
 static bool process_packet(struct ffmpeg_muxer *stream)
 {
 	struct encoder_packet packet;
+	bool has_packet = false;
 	bool ret = true;
 
 	pthread_mutex_lock(&stream->write_mutex);
 
-	if (stream->packets.size)
+	if (stream->packets.size) {
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
+		has_packet = true; 
+	}
 
 	pthread_mutex_unlock(&stream->write_mutex);
-
-	ret = write_packet(stream, &packet);
-	obs_encoder_packet_release(&packet);
+	
+	if (has_packet) {
+		ret = write_packet(stream, &packet);
+		obs_encoder_packet_release(&packet);
+	}
 	return ret;
 }
 
@@ -94,7 +98,6 @@ static void *write_thread(void *data)
 		if (!ret) {
 			obs_output_signal_stop(stream->output,
 					       OBS_OUTPUT_ERROR);
-			printf("write_thread: process_packet failed\n");
 			deactivate(stream, 0);
 			break;
 		}
@@ -275,7 +278,6 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
-		printf("ffmpeg_hls_mux_data: encoder failure\n");
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
@@ -288,7 +290,6 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			printf("ffmpeg_hls_mux_data: stream stopping\n");
 			deactivate(stream, 0);
 			return;
 		}
