@@ -336,6 +336,7 @@ static bool ffmpeg_mux_start(void *data)
 
 int deactivate(struct ffmpeg_muxer *stream, int code)
 {
+	printf("Deactivate: entered\n");
 	int ret = -1;
 
 	if (active(stream)) {
@@ -384,6 +385,7 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 
 void ffmpeg_mux_stop(void *data, uint64_t ts)
 {
+	printf("ffmpeg_mux_stop: entered\n");
 	struct ffmpeg_muxer *stream = data;
 
 	if (capturing(stream) || ts == 0) {

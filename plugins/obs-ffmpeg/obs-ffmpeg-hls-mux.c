@@ -24,6 +24,7 @@ void ffmpeg_hls_mux_destroy(void *data)
 	struct ffmpeg_muxer *stream = data;
 
 	if (stream) {
+		printf("destroy: deactivate called next\n");
 		deactivate(stream, 0);
 
 		pthread_mutex_destroy(&stream->write_mutex);
@@ -93,6 +94,7 @@ static void *write_thread(void *data)
 		if (!ret) {
 			obs_output_signal_stop(stream->output,
 					       OBS_OUTPUT_ERROR);
+			printf("write_thread: process_packet failed\n");
 			deactivate(stream, 0);
 			break;
 		}
@@ -173,6 +175,9 @@ bool ffmpeg_hls_mux_start(void *data)
 static bool write_packet_to_buf(struct ffmpeg_muxer *stream,
 				struct encoder_packet *packet)
 {
+	if (packet->type == OBS_ENCODER_AUDIO) {
+		printf("write_packet_to_buf: packet dts is %lld. Packet data is %d\n", packet->dts, packet->data);
+	}
 	circlebuf_push_back(&stream->packets, packet,
 			    sizeof(struct encoder_packet));
 	return true;
@@ -273,6 +278,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	/* encoder failure */
 	if (!packet) {
+		printf("ffmpeg_hls_mux_data: encoder failure\n");
 		deactivate(stream, OBS_OUTPUT_ENCODE_ERROR);
 		return;
 	}
@@ -285,6 +291,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
+			printf("ffmpeg_hls_mux_data: stream stopping\n");
 			deactivate(stream, 0);
 			return;
 		}
