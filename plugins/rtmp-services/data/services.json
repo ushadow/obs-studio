@@ -202,7 +202,7 @@
             "common": true,
             "servers": [
                 {
-                    "name": "Primary YouTube ingest server",
+                    "name": "youtube.com",
                     "url": "dynamic_url"
                 }
             ],
