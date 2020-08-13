@@ -74,11 +74,11 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 
 	if (stream->packets.size) {
 		circlebuf_pop_front(&stream->packets, &packet, sizeof(packet));
-		has_packet = true; 
+		has_packet = true;
 	}
 
 	pthread_mutex_unlock(&stream->write_mutex);
-	
+
 	if (has_packet) {
 		ret = write_packet(stream, &packet);
 		obs_encoder_packet_release(&packet);
