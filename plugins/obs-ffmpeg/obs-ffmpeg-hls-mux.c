@@ -175,9 +175,6 @@ bool ffmpeg_hls_mux_start(void *data)
 static bool write_packet_to_buf(struct ffmpeg_muxer *stream,
 				struct encoder_packet *packet)
 {
-	if (packet->type == OBS_ENCODER_AUDIO) {
-		printf("write_packet_to_buf: packet dts is %lld. Packet data is %d\n", packet->dts, packet->data);
-	}
 	circlebuf_push_back(&stream->packets, packet,
 			    sizeof(struct encoder_packet));
 	return true;
