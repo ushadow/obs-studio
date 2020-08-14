@@ -34,6 +34,9 @@ static size_t youtube_write_cb(void *contents, size_t size, size_t nmemb,
 
 const char *youtube_get_ingest(const char *server)
 {
+    // HAVE 2 URLS, dynamic and fallback in case we don't get one back 
+    // rather than just returning "server"
+
 	CURL *curl_handle;
 	CURLcode res;
 	struct youtube_mem_struct chunk;
