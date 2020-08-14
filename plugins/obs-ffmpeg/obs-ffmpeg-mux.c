@@ -366,7 +366,7 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		obs_output_end_data_capture(stream->output);
 	}
 
-	if (stream->hls) {
+	if (stream->is_hls) {
 		pthread_mutex_lock(&stream->write_mutex);
 
 		while (stream->packets.size) {
