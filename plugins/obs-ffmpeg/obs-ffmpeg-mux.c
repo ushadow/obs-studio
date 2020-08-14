@@ -338,27 +338,6 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 {
 	int ret = -1;
 
-	if (active(stream)) {
-		ret = os_process_pipe_destroy(stream->pipe);
-		stream->pipe = NULL;
-
-		os_atomic_set_bool(&stream->active, false);
-		os_atomic_set_bool(&stream->sent_headers, false);
-
-		info("Output of file '%s' stopped",
-		     dstr_is_empty(&stream->printable_path)
-			     ? stream->path.array
-			     : stream->printable_path.array);
-	}
-
-	if (code) {
-		obs_output_signal_stop(stream->output, code);
-	} else if (stopping(stream)) {
-		obs_output_end_data_capture(stream->output);
-	}
-
-	os_atomic_set_bool(&stream->stopping, false);
-
 	if (stream->is_hls) {
 		if (stream->mux_thread_joinable) {
 			os_event_signal(stream->stop_event);
@@ -379,6 +358,26 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		pthread_mutex_unlock(&stream->write_mutex);
 	}
 
+	if (active(stream)) {
+		ret = os_process_pipe_destroy(stream->pipe);
+		stream->pipe = NULL;
+
+		os_atomic_set_bool(&stream->active, false);
+		os_atomic_set_bool(&stream->sent_headers, false);
+
+		info("Output of file '%s' stopped",
+		     dstr_is_empty(&stream->printable_path)
+			     ? stream->path.array
+			     : stream->printable_path.array);
+	}
+
+	if (code) {
+		obs_output_signal_stop(stream->output, code);
+	} else if (stopping(stream)) {
+		obs_output_end_data_capture(stream->output);
+	}
+
+	os_atomic_set_bool(&stream->stopping, false);
 	return ret;
 }
 
@@ -520,6 +519,8 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
+			printf("\n* * * ffmpeg_mux_data: packet->sys_dts_usec and stream->stop_ts: %d, %d * * *\n",
+			       packet->sys_dts_usec);
 			deactivate(stream, 0);
 			return;
 		}

@@ -16,7 +16,9 @@ const char *ffmpeg_hls_mux_getname(void *type)
 int hls_stream_dropped_frames(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
+	pthread_mutex_lock(&stream->write_mutex);
 	return stream->dropped_frames;
+	pthread_mutex_unlock(&stream->write_mutex);
 }
 
 void ffmpeg_hls_mux_destroy(void *data)
@@ -94,8 +96,7 @@ static void *write_thread(void *data)
 		if (os_event_try(stream->stop_event) == 0)
 			break;
 
-		bool ret = process_packet(stream);
-		if (!ret) {
+		if (!process_packet(stream)) {
 			obs_output_signal_stop(stream->output,
 					       OBS_OUTPUT_ERROR);
 			deactivate(stream, 0);
@@ -163,7 +164,7 @@ bool ffmpeg_hls_mux_start(void *data)
 	/* write headers and start capture */
 	os_atomic_set_bool(&stream->active, true);
 	os_atomic_set_bool(&stream->capturing, true);
-	os_atomic_set_bool(&stream->is_hls, true);
+	stream->is_hls = true;
 	stream->total_bytes = 0;
 	stream->dropped_frames = 0;
 	stream->min_priority = 0;
