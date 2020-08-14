@@ -345,17 +345,6 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 			pthread_join(stream->mux_thread, NULL);
 			stream->mux_thread_joinable = false;
 		}
-
-		pthread_mutex_lock(&stream->write_mutex);
-
-		while (stream->packets.size) {
-			struct encoder_packet packet;
-			circlebuf_pop_front(&stream->packets, &packet,
-					    sizeof(packet));
-			obs_encoder_packet_release(&packet);
-		}
-
-		pthread_mutex_unlock(&stream->write_mutex);
 	}
 
 	if (active(stream)) {
@@ -375,6 +364,19 @@ int deactivate(struct ffmpeg_muxer *stream, int code)
 		obs_output_signal_stop(stream->output, code);
 	} else if (stopping(stream)) {
 		obs_output_end_data_capture(stream->output);
+	}
+
+	if (stream->hls) {
+		pthread_mutex_lock(&stream->write_mutex);
+
+		while (stream->packets.size) {
+			struct encoder_packet packet;
+			circlebuf_pop_front(&stream->packets, &packet,
+					    sizeof(packet));
+			obs_encoder_packet_release(&packet);
+		}
+
+		pthread_mutex_unlock(&stream->write_mutex);
 	}
 
 	os_atomic_set_bool(&stream->stopping, false);
