@@ -54,7 +54,7 @@ const char *youtube_get_ingest(const char *server)
 
 	dstr_init(&uri);
 	dstr_copy(&uri, server);
-	is_primary = !(dstr_cmp(&uri, "https://upload.youtube.com/rtmp_url");
+	is_primary = !(dstr_cmp(&uri, "https://upload.youtube.com/rtmp_url"));
 
 	curl_easy_setopt(curl_handle, CURLOPT_URL, uri.array);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, true);
