@@ -34,14 +34,15 @@ static size_t youtube_write_cb(void *contents, size_t size, size_t nmemb,
 
 const char *youtube_get_ingest(const char *server)
 {
-    // HAVE 2 URLS, dynamic and fallback in case we don't get one back 
-    // rather than just returning "server"
-
 	CURL *curl_handle;
 	CURLcode res;
 	struct youtube_mem_struct chunk;
 	struct dstr uri;
 	long response_code;
+	bool is_primary; 
+
+	char* primary = "https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8";
+    char* backup = "https://b.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=1&file=out.m3u8";
 
 	/* inits the curl function */
 	curl_handle = curl_easy_init();
@@ -51,6 +52,7 @@ const char *youtube_get_ingest(const char *server)
 
 	dstr_init(&uri);
 	dstr_copy(&uri, server);
+	is_primary = !(dstr_cmp(&uri, "https://upload.youtube.com/rtmp_url");
 
 	curl_easy_setopt(curl_handle, CURLOPT_URL, uri.array);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, true);
@@ -74,7 +76,7 @@ const char *youtube_get_ingest(const char *server)
 		     curl_easy_strerror(res));
 		curl_easy_cleanup(curl_handle);
 		free(chunk.memory);
-		return server;
+		return (is_primary ? primary : backup);
 	}
 
 	curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code);
@@ -84,7 +86,7 @@ const char *youtube_get_ingest(const char *server)
 		     response_code);
 		curl_easy_cleanup(curl_handle);
 		free(chunk.memory);
-		return server;
+		return (is_primary ? primary : backup);
 	}
 
 	curl_easy_cleanup(curl_handle);
@@ -93,7 +95,7 @@ const char *youtube_get_ingest(const char *server)
 		blog(LOG_WARNING,
 		     "youtube_get_ingest: curl_easy_perform() returned empty response");
 		free(chunk.memory);
-		return server;
+		return (is_primary ? primary : backup);
 	}
 
 	if (current_ingest) {
