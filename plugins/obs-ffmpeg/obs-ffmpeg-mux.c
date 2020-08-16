@@ -521,8 +521,6 @@ static void ffmpeg_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			printf("\n* * * ffmpeg_mux_data: packet->sys_dts_usec and stream->stop_ts: %d, %d * * *\n",
-			       packet->sys_dts_usec);
 			deactivate(stream, 0);
 			return;
 		}
