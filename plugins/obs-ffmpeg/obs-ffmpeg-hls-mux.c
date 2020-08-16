@@ -94,7 +94,7 @@ static void *write_thread(void *data)
 
 	while (os_sem_wait(stream->write_sem) == 0) {
 		if (os_event_try(stream->stop_event) == 0)
-			return;
+			return NULL;
 
 		if (!process_packet(stream)) {
 			obs_output_signal_stop(stream->output,
