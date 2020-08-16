@@ -16,7 +16,11 @@ const char *ffmpeg_hls_mux_getname(void *type)
 int hls_stream_dropped_frames(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
+	printf("Grabbing lock in hls_stream_dropped_frames\n");
+	pthread_mutex_lock(&stream->write_mutex);
 	return stream->dropped_frames;
+	pthread_mutex_unlock(&stream->write_mutex);
+	printf("Releasing lock in hls_stream_dropped_frames\n");
 }
 
 void ffmpeg_hls_mux_destroy(void *data)
@@ -70,6 +74,7 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 	bool has_packet = false;
 	bool ret = true;
 
+	printf("Process_packet: grab lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
 
 	if (stream->packets.size) {
@@ -78,6 +83,7 @@ static bool process_packet(struct ffmpeg_muxer *stream)
 	}
 
 	pthread_mutex_unlock(&stream->write_mutex);
+	printf("Process_packet: release lock\n");
 
 	if (has_packet) {
 		ret = write_packet(stream, &packet);
@@ -304,6 +310,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	}
 	obs_encoder_packet_ref(&new_packet, packet);
 
+	printf("Ffmpeg_hls_mux_data: grab lock\n");
 	pthread_mutex_lock(&stream->write_mutex);
 
 	if (active(stream)) {
@@ -314,6 +321,7 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 	}
 
 	pthread_mutex_unlock(&stream->write_mutex);
+	printf("Ffmpeg_hls_mux_data: release lock\n");
 
 	if (added_packet)
 		os_sem_post(stream->write_sem);
