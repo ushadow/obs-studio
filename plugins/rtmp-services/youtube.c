@@ -39,10 +39,12 @@ const char *youtube_get_ingest(const char *server)
 	struct youtube_mem_struct chunk;
 	struct dstr uri;
 	long response_code;
-	bool is_primary; 
+	bool is_primary;
 
-	char* primary = "https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8";
-    char* backup = "https://b.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=1&file=out.m3u8";
+	char *primary =
+		"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8";
+	char *backup =
+		"https://b.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=1&file=out.m3u8";
 
 	/* inits the curl function */
 	curl_handle = curl_easy_init();
