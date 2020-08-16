@@ -16,9 +16,7 @@ const char *ffmpeg_hls_mux_getname(void *type)
 int hls_stream_dropped_frames(void *data)
 {
 	struct ffmpeg_muxer *stream = data;
-	pthread_mutex_lock(&stream->write_mutex);
 	return stream->dropped_frames;
-	pthread_mutex_unlock(&stream->write_mutex);
 }
 
 void ffmpeg_hls_mux_destroy(void *data)
