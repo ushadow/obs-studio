@@ -95,9 +95,6 @@ static void *write_thread(void *data)
 			return NULL;
 
 		if (!process_packet(stream)) {
-			obs_output_signal_stop(stream->output,
-					       OBS_OUTPUT_ERROR);
-			deactivate(stream, 0);
 			break;
 		}
 	}
@@ -290,8 +287,6 @@ void ffmpeg_hls_mux_data(void *data, struct encoder_packet *packet)
 
 	if (stopping(stream)) {
 		if (packet->sys_dts_usec >= stream->stop_ts) {
-			printf("\n* * * ffmpeg_mux_data: packet->sys_dts_usec and stream->stop_ts: %d, %d * * *\n",
-			       packet->sys_dts_usec);
 			deactivate(stream, 0);
 			return;
 		}
