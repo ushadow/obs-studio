@@ -94,7 +94,7 @@ static void *write_thread(void *data)
 		if (os_event_try(stream->stop_event) == 0)
 			return NULL;
 
-		if (!process_packet(stream)) 
+		if (!process_packet(stream))
 			break;
 	}
 
