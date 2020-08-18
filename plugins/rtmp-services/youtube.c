@@ -1,10 +1,11 @@
-#include <util/curl/curl-helper.h>
+#include "youtube.h"
+
 #include <stdlib.h>
 #include <string.h>
-
+#include <util/curl/curl-helper.h>
 #include <util/dstr.h>
+
 #include "util/base.h"
-#include "youtube.h"
 
 struct youtube_mem_struct {
 	char *memory;
@@ -41,10 +42,8 @@ const char *youtube_get_ingest(const char *server)
 	long response_code;
 	bool is_primary;
 
-	char *primary =
-		"https://a.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=0&file=out.m3u8";
-	char *backup =
-		"https://b.upload.youtube.com/http_upload_hls?cid={stream_key}&copy=1&file=out.m3u8";
+	char *primary = "rtmp://a.rtmp.youtube.com/live2";
+	char *backup = "rtmp://b.rtmp.youtube.com/live2?backup=1";
 
 	/* inits the curl function */
 	curl_handle = curl_easy_init();
@@ -54,7 +53,7 @@ const char *youtube_get_ingest(const char *server)
 
 	dstr_init(&uri);
 	dstr_copy(&uri, server);
-	is_primary = !(dstr_cmp(&uri, "https://upload.youtube.com/rtmp_url"));
+	is_primary = (dstr_find(&uri, "backup=1") == NULL);
 
 	curl_easy_setopt(curl_handle, CURLOPT_URL, uri.array);
 	curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, true);
