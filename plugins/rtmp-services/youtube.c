@@ -13,8 +13,8 @@ struct youtube_mem_struct {
 };
 
 static char *current_ingest = NULL;
-const char *primary = "rtmp://a.rtmp.youtube.com/live2";
-const char *backup = "rtmp://b.rtmp.youtube.com/live2?backup=1";
+static const char *primary = "rtmp://a.rtmp.youtube.com/live2";
+static const char *backup = "rtmp://b.rtmp.youtube.com/live2?backup=1";
 
 static size_t youtube_write_cb(void *contents, size_t size, size_t nmemb,
 			       void *userp)
