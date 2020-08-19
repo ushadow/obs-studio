@@ -13,6 +13,8 @@ struct youtube_mem_struct {
 };
 
 static char *current_ingest = NULL;
+const char *primary = "rtmp://a.rtmp.youtube.com/live2";
+const char *backup = "rtmp://b.rtmp.youtube.com/live2?backup=1";
 
 static size_t youtube_write_cb(void *contents, size_t size, size_t nmemb,
 			       void *userp)
@@ -41,9 +43,6 @@ const char *youtube_get_ingest(const char *server)
 	struct dstr uri;
 	long response_code;
 	bool is_primary;
-
-	char *primary = "rtmp://a.rtmp.youtube.com/live2";
-	char *backup = "rtmp://b.rtmp.youtube.com/live2?backup=1";
 
 	/* inits the curl function */
 	curl_handle = curl_easy_init();
