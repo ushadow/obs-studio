@@ -9,6 +9,7 @@ include_directories(${OBS_JANSSON_INCLUDE_DIRS})
 set(rtmp-services_SOURCES
 	twitch.c
 	younow.c
+	youtube.c
 	rtmp-common.c
 	rtmp-custom.c
 	rtmp-services-main.c)
@@ -23,6 +24,7 @@ endif()
 set(rtmp-services_HEADERS
 	twitch.h
 	younow.h
+	youtube.h
 	rtmp-format-ver.h)
 
 set(RTMP_SERVICES_URL

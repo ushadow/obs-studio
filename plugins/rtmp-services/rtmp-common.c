@@ -6,6 +6,7 @@
 #include "rtmp-format-ver.h"
 #include "twitch.h"
 #include "younow.h"
+#include "youtube.h"
 
 struct rtmp_common {
 	char *service;
@@ -592,6 +593,13 @@ static const char *rtmp_common_url(void *data)
 			twitch_ingests_unlock();
 
 			return ing.url;
+		}
+	}
+
+	if (service->service &&
+	    strcmp(service->service, "YouTube / YouTube Gaming") == 0) {
+		if (service->server) {
+			return youtube_get_ingest(service->server);
 		}
 	}
 

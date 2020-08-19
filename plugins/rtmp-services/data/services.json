@@ -202,12 +202,12 @@
             "common": true,
             "servers": [
                 {
-                    "name": "Primary YouTube ingest server",
-                    "url": "rtmp://a.rtmp.youtube.com/live2"
+                    "name": "Primary YouTube Ingest Server",
+                    "url": "https://upload.youtube.com/rtmp_url"
                 },
                 {
-                    "name": "Backup YouTube ingest server",
-                    "url": "rtmp://b.rtmp.youtube.com/live2?backup=1"
+                    "name": "Backup YouTube Ingest Server",
+                    "url": "https://upload.youtube.com/rtmp_url?backup=1"
                 }
             ],
             "recommended": {
